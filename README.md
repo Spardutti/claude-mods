@@ -5,7 +5,7 @@
 **Little mods for Claude Code: panels that keep the stuff you'd normally go check next to the chat, and helpers that do the chores for you.**
 
 ![Claude Code 2.1.287+](https://img.shields.io/badge/Claude%20Code-2.1.287%2B-d97757)
-![mods: 2](https://img.shields.io/badge/mods-2-8aadf4)
+![mods: 3](https://img.shields.io/badge/mods-3-8aadf4)
 ![License: MIT](https://img.shields.io/badge/license-MIT-a6da95)
 
 </div>
@@ -28,9 +28,10 @@ Add the marketplace once, then install a mod:
 /plugin marketplace add spardutti/claude-mods
 /plugin install branch-status@spardutti-mods
 /plugin install auto-handoff@spardutti-mods
+/plugin install handoff-pickup@spardutti-mods
 ```
 
-Install one or both. The panel opens on the next session start, or right away with `/branch-status`.
+Install any you like. The panel opens on the next session start, or right away with `/branch-status`.
 
 ## The mods
 
@@ -83,6 +84,27 @@ interrupted turns.
 
 **Change the 60%:** open `/plugin`, pick `auto-handoff`, and set **Handoff threshold (%)**.
 
+### handoff-pickup
+
+**Why:** you write a handoff on Friday, close up, and on Monday you've forgotten it exists.
+The notes are sitting right there, and you start from scratch anyway.
+
+This mod reminds you. When a handoff is waiting, a line shows above the prompt:
+
+```
+Handoff waiting: Fix the login redirect (3 days ago) · /pickup
+```
+
+1. Run `/pickup`, then send any message. Claude reads the handoff and carries on.
+2. When the work is done, run `/pickup done`. The handoff file is deleted and the line goes away.
+
+It checks every 5 minutes, so a session you left open over the weekend shows it too.
+A handoff less than an hour old stays quiet, because you're most likely working from it.
+Handoffs that auto-handoff resumes count as picked up, so `/pickup done` cleans those up too.
+
+**Keep handoffs somewhere else?** open `/plugin`, pick `handoff-pickup`, and set **Handoff folder**.
+It defaults to `.claude/handoffs`.
+
 ## Put the panel beside the chat
 
 Out of the box, the panel sits above the chat. Switch Claude Code to fullscreen view and it
@@ -119,6 +141,7 @@ Too wide or too narrow? Drag the panel's edge. Claude Code remembers the size.
 /plugin marketplace update spardutti-mods
 /plugin update branch-status@spardutti-mods
 /plugin update auto-handoff@spardutti-mods
+/plugin update handoff-pickup@spardutti-mods
 /reload-plugins
 ```
 
