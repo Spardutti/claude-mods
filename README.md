@@ -95,6 +95,8 @@ docks on the right, which is how it's meant to be used:
 It's saved for every new session. Fullscreen needs a terminal at least 110 columns wide.
 Changed your mind? `/tui default` takes you back.
 
+Too wide or too narrow? Drag the panel's edge. Claude Code remembers the size.
+
 <details>
 
 <summary><b>Fullscreen troubleshooting</b></summary>

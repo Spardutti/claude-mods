@@ -1,6 +1,6 @@
 {
   "name": "branch-status",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "A small git-flow graph of main, develop and your branch, with what is waiting to release",
   "author": { "name": "Damian" },
   "types": "./types/index.d.ts"
