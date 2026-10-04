@@ -14,6 +14,11 @@
       "name": "auto-handoff",
       "source": "./plugins/auto-handoff",
       "description": "Hands the work to a fresh, named session when the context gets too full, using your /handoff command"
+    },
+    {
+      "name": "handoff-pickup",
+      "source": "./plugins/handoff-pickup",
+      "description": "Reminds you of a handoff you left behind, picks it up with /pickup, and deletes it when you're done"
     }
   ]
 }
