@@ -2,28 +2,23 @@
 
 ## Where things are
 
-- `branch-status` is built, moved here from a dev session, and renamed from `git-graph`.
-- Checks pass: `claude plugin validate`, `claude plugin test` (3 tests), and a strict `tsc`.
-- Nobody has seen it on a real screen yet.
-- Local repo only. No GitHub repo, nothing pushed.
+- `branch-status` 0.2.3 is live on a real screen and looks right.
+- Repo is public on GitHub: `Spardutti/claude-mods`.
+- Checks pass: `claude plugin validate`, `claude plugin test` (7 tests), strict `tsc`.
 
-## What it does
+## What changed this session
 
-- Panel shows: branch name, ↑ahead / ↓behind `main`, and the first-parent commits on
-  `develop` not on `main` (one line per merged feature).
-- Refreshes on session start, after any Bash call running `git` or `gh`, and every 30 s.
-- `main` and `develop` are hard-coded in `hooks/register.tsx`.
+- The panel is now a small git-flow graph (`hooks/graph.ts`), not lines of text.
+- Other branches are read from `origin`; local copies went stale and showed false drift.
+- Merge commits with no code are ignored, so release and sync merges stop showing as ahead.
+- The panel asks for 56 columns when docked; long names wrap, never cut.
 
-## Next
+## Learned
 
-1. Install it in a project that has a `develop` branch:
-   `/plugin marketplace add /home/spardutti/projects/personal/claude-mods`, then
-   `/plugin install branch-status@spardutti-mods`.
-2. Look at it: fullscreen terminal, 110+ columns docks it beside the chat; otherwise it sits
-   above the prompt.
-3. Fix what looks wrong, then decide on a GitHub repo and push.
+- The panel docks beside the chat only in fullscreen (`/tui fullscreen`) at 110+ columns.
+- herdr 0.8.2 kept it above the chat; 0.9.3 plus `herdr integration install claude` docks it.
 
 ## Open questions
 
-- Should the branch names be settings (`userConfig`) instead of fixed?
-- Is the panel the right place, or would one line above the prompt be enough?
+- Should `main` and `develop` be settings (`userConfig`) instead of fixed?
+- Should the mod run `git fetch` itself, so `origin` is never stale?

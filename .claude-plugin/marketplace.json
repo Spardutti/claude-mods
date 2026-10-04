@@ -6,7 +6,7 @@
     {
       "name": "branch-status",
       "source": "./plugins/branch-status",
-      "description": "A panel showing how far your branch is from main, and what develop holds that main does not"
+      "description": "A small git-flow graph of main, develop and your branch, with what is waiting to release"
     }
   ]
 }

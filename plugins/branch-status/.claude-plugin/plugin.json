@@ -1,7 +1,7 @@
 {
   "name": "branch-status",
-  "version": "0.1.0",
-  "description": "A panel showing how far your branch is from main, and what develop holds that main does not",
+  "version": "0.2.3",
+  "description": "A small git-flow graph of main, develop and your branch, with what is waiting to release",
   "author": { "name": "Damian" },
   "types": "./types/index.d.ts"
 }
