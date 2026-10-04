@@ -1,12 +1,19 @@
 {
   "name": "spardutti-mods",
-  "owner": { "name": "Damian" },
+  "owner": {
+    "name": "Damian"
+  },
   "description": "Claude Code mods: live panels and hooks for daily work",
   "plugins": [
     {
       "name": "branch-status",
       "source": "./plugins/branch-status",
       "description": "A small git-flow graph of main, develop and your branch, with what is waiting to release"
+    },
+    {
+      "name": "auto-handoff",
+      "source": "./plugins/auto-handoff",
+      "description": "Hands the work to a fresh, named session when the context gets too full, using your /handoff command"
     }
   ]
 }
