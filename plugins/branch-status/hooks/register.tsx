@@ -84,7 +84,6 @@ function lanesOf({ branch, release, work }: Snapshot): Lane[] {
     lanes.push({
       name: RELEASE,
       color: 'yellow',
-      commits: release.merges.length,
       note: release.merges.length ? { text: `${release.merges.length} to release`, color: 'yellow' } : { text: 'all released', dimColor: true },
       warning: release.behind ? `${release.behind} on ${BASE}, not on ${RELEASE}` : undefined,
       isYou: branch === RELEASE,
@@ -94,7 +93,6 @@ function lanesOf({ branch, release, work }: Snapshot): Lane[] {
     lanes.push({
       name: branch,
       color: 'blue',
-      commits: work.ahead,
       note: { text: work.ahead ? `${work.ahead} commit${work.ahead === 1 ? '' : 's'}` : 'no commits yet', dimColor: true },
       warning: work.behind ? `${work.parent} has ${work.behind} new, pull it` : undefined,
       isYou: true,

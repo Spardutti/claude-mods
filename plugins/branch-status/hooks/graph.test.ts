@@ -4,29 +4,37 @@ import { drawLanes, shortSubject } from './graph'
 
 const asText = (rows: ReturnType<typeof drawLanes>) => rows.map(row => [...row.lead, ...row.tail].map(s => s.text).join('').trimEnd())
 
-test('each lane forks off the last commit of the lane above', () => {
+const MAIN = { name: 'main', color: 'green' }
+
+test('each lane hangs off the one above, with its notes beneath it', () => {
   const rows = drawLanes([
-    { name: 'main', color: 'green' },
-    { name: 'develop', color: 'yellow', commits: 3 },
-    { name: 'feat/login', color: 'blue', commits: 2, isYou: true },
+    MAIN,
+    { name: 'develop', color: 'yellow', note: { text: '3 to release' } },
+    { name: 'feat/login', color: 'blue', note: { text: '2 commits' }, warning: 'develop has 3 new, pull it', isYou: true },
   ])
   expect(asText(rows)).toEqual([
-    'main        ●──────────',
-    '             ╲',
-    'develop       ●─●─●',
-    '                   ╲',
-    'feat/login          ●─●    ←\u00A0you',
+    '● main',
+    '└─● develop',
+    '  │ 3 to release',
+    '  └─● feat/login  ← you',
+    '      2 commits',
+    '      develop has 3 new, pull it',
   ])
 })
 
-test('long runs of commits are cut short', () => {
-  const [, , row] = asText(drawLanes([{ name: 'main', color: 'green' }, { name: 'develop', color: 'yellow', commits: 9 }]))
-  expect(row).toBe('develop       ●─●─●─●┄')
+test('the last lane has no line running down past its notes', () => {
+  const rows = drawLanes([MAIN, { name: 'develop', color: 'yellow', note: { text: '5 to release' }, isYou: true }])
+  expect(asText(rows)).toEqual(['● main', '└─● develop  ← you', '    5 to release'])
 })
 
-test('a branch name too long for its label is shown whole beneath it', () => {
-  const rows = asText(drawLanes([{ name: 'main', color: 'green' }, { name: 'feat/search-autocomplete', color: 'blue', commits: 1 }]))
-  expect(rows.slice(2)).toEqual(['feat/searc…   ●', '              feat/search-autocomplete'])
+test('the line down to a lane takes that lane color, and a warning is red', () => {
+  const rows = drawLanes([
+    MAIN,
+    { name: 'develop', color: 'yellow', note: { text: '3 to release' } },
+    { name: 'v1', color: 'blue', warning: 'develop has 3 new, pull it' },
+  ])
+  expect(rows[2]?.lead[1]).toEqual({ text: '│ ', color: 'blue' })
+  expect(rows[4]?.tail).toEqual([{ text: 'develop has 3 new, pull it', color: 'red' }])
 })
 
 test('merge subjects shrink to the PR number and branch', () => {
