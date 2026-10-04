@@ -1,0 +1,16 @@
+{
+  "name": "auto-handoff",
+  "version": "0.1.0",
+  "description": "Hands the work to a fresh, named session when the context gets too full, using your /handoff command",
+  "author": { "name": "Damian" },
+  "userConfig": {
+    "threshold": {
+      "type": "number",
+      "title": "Handoff threshold (%)",
+      "description": "How full the context window gets, in percent, before the handoff starts",
+      "default": 60,
+      "min": 10,
+      "max": 95
+    }
+  }
+}

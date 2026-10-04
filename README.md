@@ -2,10 +2,10 @@
 
 # claude-mods
 
-**Little panels for Claude Code that keep the stuff you'd normally go check right next to the chat.**
+**Little mods for Claude Code: panels that keep the stuff you'd normally go check next to the chat, and helpers that do the chores for you.**
 
 ![Claude Code 2.1.287+](https://img.shields.io/badge/Claude%20Code-2.1.287%2B-d97757)
-![mods: 1](https://img.shields.io/badge/mods-1-8aadf4)
+![mods: 2](https://img.shields.io/badge/mods-2-8aadf4)
 ![License: MIT](https://img.shields.io/badge/license-MIT-a6da95)
 
 <img src="docs/branch-status.svg" alt="The branch-status panel: main, develop with 3 merges to release, and feat/login with 2 commits" width="600">
@@ -18,7 +18,7 @@ I work with git flow all day: features go into `develop`, `develop` goes into `m
 And I kept asking the same three questions. What's waiting to ship? Is my branch behind?
 Did that release actually land? Each one meant leaving the chat to run `git log`.
 
-So I made Claude Code show me. These mods are plugins that draw live panels inside your session.
+So I made Claude Code show me. These mods are plugins that draw live panels or run small chores inside your session.
 Each one installs on its own, so you take only what you want.
 
 ## Get started
@@ -28,9 +28,10 @@ Add the marketplace once, then install a mod:
 ```
 /plugin marketplace add spardutti/claude-mods
 /plugin install branch-status@spardutti-mods
+/plugin install auto-handoff@spardutti-mods
 ```
 
-That's it. The panel opens on the next session start, or right away with `/branch-status`.
+Install one or both. The panel opens on the next session start, or right away with `/branch-status`.
 
 ## The mods
 
@@ -54,6 +55,23 @@ A few things it gets right so you don't have to think about them:
 - **It keeps itself up to date.** It refreshes on start, after any `git` or `gh` command, and every 30 seconds.
 
 `main` and `develop` are fixed names for now.
+
+### auto-handoff
+
+Long sessions get slow and forgetful. This one notices when the context passes 60% full and
+hands the work to a fresh session by itself:
+
+1. It runs your `/handoff` command, which writes `.claude/handoffs/<date>-<topic>.md`.
+2. It clears the chat and names the new session after the handoff, so `/resume` lists it.
+3. It tells the fresh session to read the handoff and carry on.
+
+No `/handoff` command installed? It runs a normal `/compact` instead. Same if the handoff
+skill decides there's nothing worth writing down.
+
+It only fires when a turn ends, never in the middle of work, and skips subagents and
+interrupted turns.
+
+**Change the 60%:** open `/plugin`, pick `auto-handoff`, and set **Handoff threshold (%)**.
 
 ## Put the panel beside the chat
 
@@ -88,6 +106,7 @@ Changed your mind? `/tui default` takes you back.
 ```
 /plugin marketplace update spardutti-mods
 /plugin update branch-status@spardutti-mods
+/plugin update auto-handoff@spardutti-mods
 /reload-plugins
 ```
 
