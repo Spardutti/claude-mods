@@ -8,8 +8,6 @@
 ![mods: 2](https://img.shields.io/badge/mods-2-8aadf4)
 ![License: MIT](https://img.shields.io/badge/license-MIT-a6da95)
 
-<img src="docs/branch-status.svg" alt="The branch-status panel: main, develop with 3 merges to release, and feat/login with 2 commits" width="600">
-
 </div>
 
 ## Why
@@ -38,6 +36,8 @@ Install one or both. The panel opens on the next session start, or right away wi
 ### branch-status
 
 Your branch, `develop` and `main`, drawn as a tiny git-flow graph.
+
+<img src="docs/branch-status.svg" alt="The branch-status panel: main, develop with 3 merges to release, and feat/login with 2 commits" width="600">
 
 | You see | It means |
 | --- | --- |
