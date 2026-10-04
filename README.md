@@ -6,6 +6,7 @@
 
 ![Claude Code 2.1.287+](https://img.shields.io/badge/Claude%20Code-2.1.287%2B-d97757)
 ![mods: 1](https://img.shields.io/badge/mods-1-8aadf4)
+![License: MIT](https://img.shields.io/badge/license-MIT-a6da95)
 
 <img src="docs/branch-status.svg" alt="The branch-status panel: main, develop with 3 merges to release, and feat/login with 2 commits" width="600">
 
