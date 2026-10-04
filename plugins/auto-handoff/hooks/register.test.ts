@@ -48,6 +48,14 @@ test('above the threshold, the handoff is written, then a fresh named session re
   expect(seen.prompts).toEqual([`Read ${PATH} and continue.`])
 })
 
+test('exactly at the threshold, the handoff starts', async ($, on) => {
+  const seen = fakeSession(on, { percent: 60, commands: ['handoff'] })
+
+  await endTurn($)
+
+  expect(seen.ran).toEqual(['handoff'])
+})
+
 test('below the threshold nothing happens', async ($, on) => {
   const seen = fakeSession(on, { percent: 59, commands: ['handoff'] })
 
