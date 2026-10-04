@@ -12,27 +12,23 @@
   <circle cx="62" cy="17" r="6" fill="#a6da95"/>
   <text x="300" y="22" text-anchor="middle" class="dim">Git</text>
 
-  <g stroke-width="2.5" fill="none" stroke-linecap="round">
-    <path d="M160 66 H380" stroke="#a6da95"/>
-    <path d="M160 66 C172 66 176 106 190 106 H250" stroke="#eed49f"/>
-    <path d="M250 106 C262 106 266 146 280 146 H310" stroke="#8aadf4"/>
+  <g stroke-width="2" fill="none">
+    <path d="M34 66 V102 H54" stroke="#eed49f"/>
+    <path d="M60 106 V150 H78" stroke="#8aadf4"/>
   </g>
-  <circle cx="160" cy="66" r="6" fill="#a6da95"/>
-  <circle cx="190" cy="106" r="6" fill="#eed49f"/>
-  <circle cx="220" cy="106" r="6" fill="#eed49f"/>
-  <circle cx="250" cy="106" r="6" fill="#eed49f"/>
-  <circle cx="280" cy="146" r="6" fill="#8aadf4"/>
-  <circle cx="310" cy="146" r="6" fill="#8aadf4"/>
+  <circle cx="34" cy="62" r="6" fill="#a6da95"/>
+  <circle cx="60" cy="102" r="6" fill="#eed49f"/>
+  <circle cx="84" cy="150" r="6" fill="#8aadf4"/>
 
-  <text x="28" y="71" class="main">main</text>
-  <text x="28" y="111" class="dev">develop</text>
-  <text x="275" y="111" class="dev">3 to release</text>
-  <text x="28" y="151" class="you" font-weight="bold">feat/login</text>
-  <text x="335" y="151" class="dim">2 commits</text>
-  <text x="440" y="151" class="txt" font-weight="bold">← you</text>
-  <text x="274" y="176" class="warn">develop has 4 new, pull it</text>
+  <text x="50" y="67" class="main">main</text>
+  <text x="76" y="107" class="dev">develop</text>
+  <text x="76" y="131" class="dev">3 to release</text>
+  <text x="100" y="155" class="you" font-weight="bold">feat/login</text>
+  <text x="208" y="155" class="txt" font-weight="bold">← you</text>
+  <text x="100" y="179" class="dim">2 commits</text>
+  <text x="100" y="203" class="warn">develop has 4 new, pull it</text>
 
-  <text x="44" y="218" class="dim">·  #88  feat/search-autocomplete</text>
-  <text x="44" y="242" class="dim">·  #87  fix/login-redirect</text>
-  <text x="44" y="266" class="dim">·  #85  chore/bump-deps</text>
+  <text x="44" y="238" class="dim">·  #88  feat/search-autocomplete</text>
+  <text x="44" y="261" class="dim">·  #87  fix/login-redirect</text>
+  <text x="44" y="284" class="dim">·  #85  chore/bump-deps</text>
 </svg>
