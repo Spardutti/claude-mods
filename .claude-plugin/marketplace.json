@@ -1,0 +1,12 @@
+{
+  "name": "spardutti-mods",
+  "owner": { "name": "Damian" },
+  "description": "Claude Code mods: live panels and hooks for daily work",
+  "plugins": [
+    {
+      "name": "branch-status",
+      "source": "./plugins/branch-status",
+      "description": "A panel showing how far your branch is from main, and what develop holds that main does not"
+    }
+  ]
+}
