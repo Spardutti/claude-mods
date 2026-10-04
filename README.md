@@ -12,11 +12,12 @@
 
 ## Why
 
-I work with git flow all day: features go into `develop`, `develop` goes into `main` on release.
-And I kept asking the same three questions. What's waiting to ship? Is my branch behind?
-Did that release actually land? Each one meant leaving the chat to run `git log`.
+You spend all day in Claude Code. But the small stuff keeps pulling you out of it:
+checking git, rescuing a session that got too long, doing the same cleanup by hand.
 
-So I made Claude Code show me. These mods are plugins that draw live panels or run small chores inside your session.
+These mods put that stuff inside Claude Code. Some draw a live panel next to the chat.
+Some do a chore for you at the right moment. You keep your eyes on the work.
+
 Each one installs on its own, so you take only what you want.
 
 ## Get started
@@ -36,6 +37,11 @@ Install one or both. The panel opens on the next session start, or right away wi
 ### branch-status
 
 Your branch, `develop` and `main`, drawn as a tiny git-flow graph.
+
+**Why:** with git flow, features go into `develop`, and `develop` goes into `main` on release.
+You keep asking the same three questions. What's waiting to ship? Is my branch behind?
+Did that release land? Each one means leaving the chat to run `git log`. This panel answers
+all three at a glance.
 
 <img src="docs/branch-status.svg" alt="The branch-status panel: main, develop with 3 merges to release, and feat/login with 2 commits" width="600">
 
@@ -58,8 +64,12 @@ A few things it gets right so you don't have to think about them:
 
 ### auto-handoff
 
-Long sessions get slow and forgetful. This one notices when the context passes 60% full and
-hands the work to a fresh session by itself:
+**Why:** long sessions get slow and forgetful. The fix is a fresh session, but starting one
+means writing down where you were, clearing, and explaining it all again. You put it off
+until the session is already struggling.
+
+This mod does it for you. When the context passes 60% full, it hands the work to a fresh
+session by itself:
 
 1. It runs your `/handoff` command, which writes `.claude/handoffs/<date>-<topic>.md`.
 2. It clears the chat and names the new session after the handoff, so `/resume` lists it.
