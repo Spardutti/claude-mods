@@ -27,14 +27,18 @@ test('the last lane has no line running down past its notes', () => {
   expect(asText(rows)).toEqual(['● main', '└─● develop  ← you', '    5 to release'])
 })
 
-test('the line down to a lane takes that lane color, and a warning is red', () => {
-  const rows = drawLanes([
-    MAIN,
-    { name: 'develop', color: 'yellow', note: { text: '3 to release' } },
-    { name: 'v1', color: 'blue', warning: 'develop has 3 new, pull it' },
-  ])
-  expect(rows[2]?.lead[1]).toEqual({ text: '│ ', color: 'blue' })
-  expect(rows[4]?.tail).toEqual([{ text: 'develop has 3 new, pull it', color: 'red' }])
+const SCREENSHOT = [
+  MAIN,
+  { name: 'develop', color: 'yellow', note: { text: '3 to release' } },
+  { name: 'v1', color: 'blue', warning: 'develop has 3 new, pull it' },
+]
+
+test('the line down to a lane takes that lane color', () => {
+  expect(drawLanes(SCREENSHOT)[2]?.lead[1]).toEqual({ text: '│ ', color: 'blue' })
+})
+
+test('a warning is red', () => {
+  expect(drawLanes(SCREENSHOT)[4]?.tail).toEqual([{ text: 'develop has 3 new, pull it', color: 'red' }])
 })
 
 test('merge subjects shrink to the PR number and branch', () => {
