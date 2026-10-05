@@ -61,6 +61,16 @@ async function openBranches(git: Git, refs: { parent: string; base: string }, na
   return open
 }
 
+type Parent = { name: string; ref: string }
+
+async function releaseOf(git: Git, base: string, ref: string) {
+  return { ...(await drift(git, base, ref)), merges: await unreleased(git, base, ref) }
+}
+
+async function workOf(git: Git, parent: Parent, isMerged: boolean) {
+  return { parent: parent.name, isMerged, ...(await drift(git, parent.ref, 'HEAD')), commits: await commitsOf(git, parent.ref, 'HEAD') }
+}
+
 export async function collect(git: Git): Promise<Snapshot> {
   const branch = (await git(['rev-parse', '--abbrev-ref', 'HEAD']))?.trim()
   if (!branch) return { branch: '', error: 'Not a git repository.' }
@@ -68,14 +78,12 @@ export async function collect(git: Git): Promise<Snapshot> {
 
   const base = await refOf(git, BASE, branch)
   const hasRelease = await hasRef(git, RELEASE)
-  const parentRef = hasRelease ? await refOf(git, RELEASE, branch) : base
-  const release = hasRelease ? { ...(await drift(git, base, parentRef)), merges: await unreleased(git, base, parentRef) } : undefined
+  const parent = hasRelease ? { name: RELEASE, ref: await refOf(git, RELEASE, branch) } : { name: BASE, ref: base }
+  const release = hasRelease ? await releaseOf(git, base, parent.ref) : undefined
   const locals = parseBranches((await git(['for-each-ref', '--format=%(refname:short)%09%(upstream:track)', 'refs/heads'])) ?? '')
-  const isGone = locals.find(b => b.name === branch)?.isGone ?? false
-  const work = branch === BASE || branch === RELEASE
-    ? undefined
-    : { parent: hasRelease ? RELEASE : BASE, isMerged: isGone, ...(await drift(git, parentRef, 'HEAD')), commits: await commitsOf(git, parentRef, 'HEAD') }
-  const others = await openBranches(git, { parent: parentRef, base }, openCandidates(locals, branch, [BASE, RELEASE]))
+  const isLongLived = branch === BASE || branch === RELEASE
+  const work = isLongLived ? undefined : await workOf(git, parent, locals.find(b => b.name === branch)?.isGone ?? false)
+  const others = await openBranches(git, { parent: parent.ref, base }, openCandidates(locals, branch, [BASE, RELEASE]))
 
   return { branch, hasBase: true, release, work, others }
 }

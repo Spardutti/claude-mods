@@ -60,7 +60,7 @@ test('a total larger than the commits read counts toward the more line', () => {
   expect(rows.at(-1)).toBe('    +4 more')
 })
 
-test('a hint sits after the commits, dimmed', () => {
+test('a hint is dimmed', () => {
   const rows = drawLanes([MAIN, { ...DEVELOP, note: { text: 'merged into develop' }, hint: 'switch to develop and pull' }])
   expect(rows[3]?.tail).toEqual([{ text: 'switch to develop and pull', dimColor: true }])
 })
