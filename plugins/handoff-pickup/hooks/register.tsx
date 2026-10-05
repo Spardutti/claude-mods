@@ -11,11 +11,21 @@ const waiting = atom(ref, null as Waiting | null)
 
 // Module state, not $.state: /clear keeps this module loaded, and the pick belongs to this session.
 let pickedUp: string | undefined
+let cwd = ''
+
+// Kept in $.store so a reload or another session still hides a handoff already being worked from.
+const pickKey = (path: string) => `picked:${cwd}/${path}`
+
+async function markPicked($: EngineInterface, path: string) {
+  pickedUp = path
+  await $.store.set(pickKey(path), true)
+}
 
 async function refresh($: EngineInterface, folder: string) {
   const entries = await $.fs.list(folder).catch(() => [])
   const now = await $.clock.now()
-  const files = waitingFiles(entries, now).filter(e => `${folder}/${e.name}` !== pickedUp)
+  const picked = new Set(await $.store.keys())
+  const files = waitingFiles(entries, now).filter(e => !picked.has(pickKey(`${folder}/${e.name}`)))
   const [newest] = files
   if (!newest) return update($, waiting, () => null)
   const path = `${folder}/${newest.name}`
@@ -26,7 +36,7 @@ async function refresh($: EngineInterface, folder: string) {
 async function pickUp($: EngineInterface, folder: string) {
   const { value: shown } = await $.state.get(ref)
   if (!shown) return { text: `No handoff waiting in ${folder}.` }
-  pickedUp = shown.path
+  await markPicked($, shown.path)
   await refresh($, folder)
   return {
     text: `Picked up: ${shown.title}. Send any message to start.`,
@@ -40,6 +50,7 @@ async function finish($: EngineInterface, folder: string) {
   const { exitCode } = await $.process.run(['rm', '--', path])
   if (exitCode !== 0) return { text: `Could not delete ${path}.` }
   pickedUp = undefined
+  await $.store.delete(pickKey(path))
   await refresh($, folder)
   return { text: `Deleted ${path}.` }
 }
@@ -49,6 +60,7 @@ export const register: Register = (on, options) => {
   const resumed = new RegExp(`^Read (${folder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/[\\w-]+\\.md) and continue\\.$`)
 
   on('session.start', async ($, e, next) => {
+    cwd = e.cwd
     await $.command.register({ name: COMMAND, description: 'Pick up the waiting handoff, or "/pickup done" to delete it' })
     await refresh($, folder)
     $.clock.every(REFRESH_MS, () => void refresh($, folder))
@@ -60,7 +72,7 @@ export const register: Register = (on, options) => {
   // auto-handoff resumes with this exact prompt, so its handoff counts as picked up here.
   on('prompt.submit', async ($, e, next) => {
     const path = e.text.match(resumed)?.[1]
-    if (path) pickedUp = path
+    if (path) await markPicked($, path)
     return next(e)
   })
 
