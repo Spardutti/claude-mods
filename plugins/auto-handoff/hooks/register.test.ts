@@ -136,15 +136,23 @@ for (const surface of ['terminal', 'desktop'] as const) {
   })
 }
 
-test('Not now stops the countdown and clears the band', async ($, on) => {
+test('Not now stops the handoff from starting', async ($, on) => {
   const seen = fakeSession(on, { percent: 61, commands: ['handoff'] })
+  await endTurn($)
+
+  await (await band($)).press({ key: 'not-now' })
+  await seen.wait(COUNTDOWN_MS)
+
+  expect(seen.ran).toEqual([])
+})
+
+test('Not now clears the band', async ($, on) => {
+  fakeSession(on, { percent: 61, commands: ['handoff'] })
   await endTurn($)
   const ui = await band($)
 
   await ui.press({ key: 'not-now' })
-  await seen.wait(COUNTDOWN_MS)
 
-  expect(seen.ran).toEqual([])
   expect(await ui.find({ text: /Context at/ })).toBeUndefined()
 })
 

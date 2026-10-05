@@ -1,10 +1,11 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, Timer } from 'claude-code'
+import type { EngineInterface, Register, RenderInputOf, RenderSurface, Timer } from 'claude-code'
 
 import type { Notice } from '../types'
 import { handoffPath, sessionName } from './handoff'
 
 type Phase = 'idle' | 'writing' | 'busy'
+type BandInput = { [S in RenderSurface]: RenderInputOf<'AbovePrompt', S> }[RenderSurface]
 
 const WARN_POINTS = 5
 const COUNTDOWN_SECONDS = 10
@@ -73,6 +74,21 @@ async function resumeFresh($: EngineInterface, answer: string) {
   }
 }
 
+async function drawNotice($: EngineInterface, e: BandInput) {
+  const shown = await read($, notice)
+  if (e.props.hasSurvey || !shown) return undefined
+  const { Box, Button, Text } = $.ui.resolve(e)
+  if (shown.secondsLeft === undefined) {
+    return <Text color="yellow">Context at {shown.percent}%. Handoff starts at {shown.threshold}%.</Text>
+  }
+  return (
+    <Box>
+      <Text color="yellow">Context at {shown.percent}%. Handing off in {shown.secondsLeft}s. </Text>
+      <Button key="not-now" label="Not now" onPress={() => stopCountdown($)} />
+    </Box>
+  )
+}
+
 async function checkUsage($: EngineInterface, threshold: number) {
   const percent = (await $.session.usage()).context.percent ?? 0
   if (percent >= threshold) return countDown($, percent, threshold)
@@ -102,18 +118,5 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    const shown = await read($, notice)
-    if (e.props.hasSurvey || !shown) return next(e)
-    const { Box, Button, Text } = $.ui.resolve(e)
-    if (shown.secondsLeft === undefined) {
-      return <Text color="yellow">Context at {shown.percent}%. Handoff starts at {shown.threshold}%.</Text>
-    }
-    return (
-      <Box>
-        <Text color="yellow">Context at {shown.percent}%. Handing off in {shown.secondsLeft}s. </Text>
-        <Button key="not-now" label="Not now" onPress={() => stopCountdown($)} />
-      </Box>
-    )
-  })
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => (await drawNotice($, e)) ?? next(e))
 }
