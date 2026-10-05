@@ -8,10 +8,19 @@ const PATH = '.claude/handoffs/2026-10-02-fix-login.md'
 
 type Engine = Parameters<TestBody>[0]
 type On = Parameters<TestBody>[1]
-type Seen = { listed: string[]; removed: string[][] }
+type Seen = { listed: string[]; removed: string[][]; stored: Map<string, unknown> }
 
-function fakeProject(on: On, ageMs = 3 * 24 * HOUR): Seen {
-  const seen: Seen = { listed: [], removed: [] }
+function fakeProject(on: On, ageMs = 3 * 24 * HOUR, stored: Record<string, unknown> = {}): Seen {
+  const seen: Seen = { listed: [], removed: [], stored: new Map(Object.entries(stored)) }
+  on('store.keys', async () => ({ value: [...seen.stored.keys()] }))
+  on('store.set', async (_, e) => {
+    seen.stored.set(e.key, e.value)
+    return { value: undefined }
+  })
+  on('store.delete', async (_, e) => {
+    seen.stored.delete(e.key)
+    return { value: undefined }
+  })
   on('session.start', async (_, e) => ({ cwd: e.cwd }))
   on('command.register', async (_, e) => ({ value: { command: e.name } }))
   on('clock.every', () => new Promise(() => {}))
@@ -111,4 +120,30 @@ test('the strip goes away once the handoff is picked up', async ($, on) => {
 
   expect(await ui.find({ text: /Handoff waiting/ })).toBeUndefined()
   expect(await ui.find({ text: 'engine band' })).toBeDefined()
+})
+
+test('a handoff picked up before a reload stays hidden', async ($, on) => {
+  fakeProject(on, 3 * 24 * HOUR, { [`picked:/project/${PATH}`]: true })
+  await start($)
+
+  expect((await pickup($)).text).toBe('No handoff waiting in .claude/handoffs.')
+})
+
+test('picking up a handoff saves it in the store', async ($, on) => {
+  const seen = fakeProject(on)
+  await start($)
+
+  await pickup($)
+
+  expect([...seen.stored]).toEqual([[`picked:/project/${PATH}`, true]])
+})
+
+test('/pickup done removes the handoff from the store', async ($, on) => {
+  const seen = fakeProject(on)
+  await start($)
+  await pickup($)
+
+  await pickup($, 'done')
+
+  expect([...seen.stored]).toEqual([])
 })
