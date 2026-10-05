@@ -2,103 +2,65 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Snapshot } from '../types'
-import { parseCounts } from './counts'
 import { drawLanes, shortSubject } from './graph'
 import type { Lane } from './graph'
+import { BASE, RELEASE, collect } from './snapshot'
 
 const PANE = 'branch-status'
 const PANE_COLUMNS = 56
-const BASE = 'main'
-const RELEASE = 'develop'
 const snapshot = atom({ plugin: 'branch-status', key: 'snapshot' } as const, { branch: '' } as Snapshot)
 
 let isRefreshing = false
-
-async function git($: EngineInterface, args: string[]) {
-  const { exitCode, stdout } = await $.process.run(['git', ...args])
-  return exitCode === 0 ? stdout : undefined
-}
-
-async function hasRef($: EngineInterface, ref: string) {
-  return (await git($, ['rev-parse', '--verify', '-q', ref])) !== undefined
-}
-
-async function drift($: EngineInterface, from: string, to: string) {
-  return parseCounts((await git($, ['rev-list', '--no-merges', '--left-right', '--count', `${from}...${to}`])) ?? '') ?? { ahead: 0, behind: 0 }
-}
-
-// A merge whose side branch holds no commits missing from base (a sync from main) has nothing to release.
-async function bringsWork($: EngineInterface, base: string, hash: string) {
-  return (await git($, ['rev-list', '--no-merges', '--count', `${base}..${hash}^2`]))?.trim() !== '0'
-}
-
-async function unreleased($: EngineInterface, base: string, ref: string) {
-  const lines = ((await git($, ['log', '--first-parent', '--format=%H %s', `${base}..${ref}`])) ?? '').split('\n').filter(Boolean)
-  const kept: string[] = []
-  for (const line of lines) {
-    const [hash = '', ...subject] = line.split(' ')
-    if (await bringsWork($, base, hash)) kept.push(subject.join(' '))
-  }
-  return kept
-}
-
-// Branches other than yours are read from origin, since local copies of them go stale.
-async function refOf($: EngineInterface, name: string, branch: string) {
-  return name !== branch && (await hasRef($, `origin/${name}`)) ? `origin/${name}` : name
-}
-
-async function collect($: EngineInterface): Promise<Snapshot> {
-  const branch = (await git($, ['rev-parse', '--abbrev-ref', 'HEAD']))?.trim()
-  if (!branch) return { branch: '', error: 'Not a git repository.' }
-  if (!(await hasRef($, BASE))) return { branch, hasBase: false }
-
-  const base = await refOf($, BASE, branch)
-  const hasRelease = await hasRef($, RELEASE)
-  const releaseRef = hasRelease ? await refOf($, RELEASE, branch) : RELEASE
-  const release = hasRelease
-    ? {
-        ...(await drift($, base, releaseRef)),
-        merges: await unreleased($, base, releaseRef),
-      }
-    : undefined
-  const parent = hasRelease ? RELEASE : BASE
-  const work = branch === BASE || branch === RELEASE ? undefined : { parent, ...(await drift($, hasRelease ? releaseRef : base, 'HEAD')) }
-
-  return { branch, hasBase: true, release, work }
-}
 
 async function refresh($: EngineInterface) {
   if (isRefreshing) return
   isRefreshing = true
   try {
-    const next = await collect($)
+    const next = await collect(async args => {
+      const { exitCode, stdout } = await $.process.run(['git', ...args])
+      return exitCode === 0 ? stdout : undefined
+    })
     await update($, snapshot, () => next)
   } finally {
     isRefreshing = false
   }
 }
 
-function lanesOf({ branch, release, work }: Snapshot): Lane[] {
-  const lanes: Lane[] = [{ name: BASE, color: 'green', isYou: branch === BASE }]
-  if (release) {
-    lanes.push({
-      name: RELEASE,
-      color: 'yellow',
-      note: release.merges.length ? { text: `${release.merges.length} to release`, color: 'yellow' } : { text: 'all released', dimColor: true },
-      warning: release.behind ? `${release.behind} on ${BASE}, not on ${RELEASE}` : undefined,
-      isYou: branch === RELEASE,
-    })
+const commitCount = (n: number) => `${n} commit${n === 1 ? '' : 's'}`
+
+function releaseLane(release: NonNullable<Snapshot['release']>, branch: string): Lane {
+  return {
+    name: RELEASE,
+    color: 'yellow',
+    depth: 1,
+    note: release.merges.length ? { text: `${release.merges.length} to release`, color: 'yellow' } : { text: 'all released', dimColor: true },
+    commits: release.merges.map(shortSubject),
+    warning: release.behind ? `${release.behind} on ${BASE}, not on ${RELEASE}` : undefined,
+    isYou: branch === RELEASE,
   }
-  if (work) {
-    lanes.push({
-      name: branch,
-      color: 'blue',
-      note: { text: work.ahead ? `${work.ahead} commit${work.ahead === 1 ? '' : 's'}` : 'no commits yet', dimColor: true },
-      warning: work.behind ? `${work.parent} has ${work.behind} new, pull it` : undefined,
-      isYou: true,
-    })
+}
+
+function workLane(branch: string, work: NonNullable<Snapshot['work']>, depth: number): Lane {
+  const lane = { name: branch, color: 'blue', depth, isYou: true }
+  if (work.isMerged) return { ...lane, note: { text: `merged into ${work.parent}`, color: 'green' }, hint: `switch to ${work.parent} and pull` }
+  return {
+    ...lane,
+    note: { text: work.ahead ? commitCount(work.ahead) : 'no commits yet', dimColor: true },
+    commits: work.commits,
+    total: work.ahead,
+    warning: work.behind ? `${work.parent} has ${work.behind} new, pull it` : undefined,
   }
-  return lanes
+}
+
+function lanesOf({ branch, release, work, others = [] }: Snapshot): Lane[] {
+  const depth = release ? 2 : 1
+  const open = others.map(o => ({ name: o.name, color: 'magenta', depth, note: { text: commitCount(o.ahead), dimColor: true }, commits: o.commits, total: o.ahead }))
+  return [
+    { name: BASE, color: 'green', depth: 0, isYou: branch === BASE },
+    ...(release ? [releaseLane(release, branch)] : []),
+    ...(work ? [workLane(branch, work, depth)] : []),
+    ...open,
+  ]
 }
 
 export const register: Register = on => {
@@ -131,21 +93,12 @@ export const register: Register = on => {
     if (state.error) return <Text dimColor>{state.error}</Text>
     if (!state.hasBase) return <Text dimColor>No {BASE} branch here.</Text>
 
-    const merges = state.release?.merges ?? []
-
     return (
       <Box flexDirection="column">
         {drawLanes(lanesOf(state)).map(({ lead, tail }) => (
           <Box>
             <Box flexShrink={0}><Text>{lead.map(({ text, ...style }) => <Text {...style}>{text}</Text>)}</Text></Box>
             <Box flexShrink={1}><Text>{tail.map(({ text, ...style }) => <Text {...style}>{text}</Text>)}</Text></Box>
-          </Box>
-        ))}
-        {merges.length > 0 && <Text> </Text>}
-        {merges.slice(0, 10).map(s => (
-          <Box>
-            <Box flexShrink={0}><Text dimColor>  · </Text></Box>
-            <Box flexShrink={1}><Text dimColor>{shortSubject(s)}</Text></Box>
           </Box>
         ))}
       </Box>
