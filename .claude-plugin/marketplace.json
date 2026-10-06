@@ -19,6 +19,11 @@
       "name": "handoff-pickup",
       "source": "./plugins/handoff-pickup",
       "description": "Reminds you of a handoff you left behind, picks it up with /pickup, and deletes it when you're done"
+    },
+    {
+      "name": "blocked-run",
+      "source": "./plugins/blocked-run",
+      "description": "When auto mode blocks a command, shows it above the prompt with a button to run it yourself"
     }
   ]
 }
