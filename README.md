@@ -5,7 +5,7 @@
 **Little mods for Claude Code: panels that keep the stuff you'd normally go check next to the chat, and helpers that do the chores for you.**
 
 ![Claude Code 2.1.287+](https://img.shields.io/badge/Claude%20Code-2.1.287%2B-d97757)
-![mods: 3](https://img.shields.io/badge/mods-3-8aadf4)
+![mods: 4](https://img.shields.io/badge/mods-4-8aadf4)
 ![License: MIT](https://img.shields.io/badge/license-MIT-a6da95)
 
 </div>
@@ -29,112 +29,23 @@ Add the marketplace once, then install a mod:
 /plugin install branch-status@spardutti-mods
 /plugin install auto-handoff@spardutti-mods
 /plugin install handoff-pickup@spardutti-mods
+/plugin install blocked-run@spardutti-mods
 ```
 
-Install any you like. The panel opens on the next session start, or right away with `/branch-status`.
+Install any you like. Each one starts working on the next session start.
 
 ## The mods
 
-### branch-status
+Each mod has its own page with the full story.
 
-Your branch, your other open branches, `develop` and `main`, drawn as a tiny git-flow graph with each branch's commits.
-
-**Why:** with git flow, features go into `develop`, and `develop` goes into `main` on release.
-You keep asking the same three questions. What's waiting to ship? Is my branch behind?
-Did that release land? Each one means leaving the chat to run `git log`. This panel answers
-all three at a glance.
+| Mod | What it does |
+| --- | --- |
+| [branch-status](docs/mods/branch-status.md) | A panel with your branch, `develop` and `main` as a tiny git-flow graph, so you see what's waiting to ship without running `git log`. |
+| [auto-handoff](docs/mods/auto-handoff.md) | When the context gets too full, it warns you, counts down, then hands the work to a fresh session. |
+| [handoff-pickup](docs/mods/handoff-pickup.md) | Reminds you of a handoff you left behind. `/pickup` picks it up, `/pickup done` deletes it. |
+| [blocked-run](docs/mods/blocked-run.md) | When auto mode blocks a command, it shows above the prompt with a button to run it yourself. |
 
 <img src="docs/branch-status.svg" alt="The branch-status panel: main, develop with 3 merges to release, and feat/login with 2 commits" width="600">
-
-| You see | It means |
-| --- | --- |
-| **3 to release** under `develop` | Three merges on `develop` that `main` doesn't have yet. They're listed right under it. |
-| **2 commits** under a branch | What that branch adds on top of `develop`, newest first, up to 5. |
-| A **purple** branch | Another open branch of yours, with its own commits. |
-| **merged into develop** | Your branch's PR merged. Switch to `develop` and pull. |
-| **← you** | The branch you're on. |
-| A **red line** | Something's behind. Pull, or merge `main` back into `develop`. |
-| **all released** | `develop` and `main` match. Nothing waiting. |
-
-A few things it gets right so you don't have to think about them:
-
-- **Merge commits that carry no code are ignored.** After a release, `main` doesn't look "1 ahead" just because of the merge itself.
-- **Other branches come from `origin`.** A stale local `main` won't fool it. It's as fresh as your last `git fetch` or `git pull`.
-- **Old branches stay out.** A branch only shows if it has work that isn't in `develop` or `main` yet, even after a squash merge. Branches deleted on GitHub are skipped.
-- **Nothing gets cut off.** Long branch and PR names wrap instead.
-- **It keeps itself up to date.** It refreshes on start, after any `git` or `gh` command, and every 30 seconds.
-
-`main` and `develop` are fixed names for now.
-
-### auto-handoff
-
-**Why:** long sessions get slow and forgetful. The fix is a fresh session, but starting one
-means writing down where you were, clearing, and explaining it all again. You put it off
-until the session is already struggling.
-
-This mod does it for you. When the context passes 60% full, it hands the work to a fresh
-session by itself:
-
-1. It runs your `/handoff` command, which writes `.claude/handoffs/<date>-<topic>.md`.
-2. It clears the chat and names the new session after the handoff, so `/resume` lists it.
-3. It tells the fresh session to read the handoff and carry on.
-
-No `/handoff` command installed? It runs a normal `/compact` instead. Same if the handoff
-skill decides there's nothing worth writing down.
-
-It only fires when a turn ends, never in the middle of work, and skips subagents and
-interrupted turns.
-
-**Change the 60%:** open `/plugin`, pick `auto-handoff`, and set **Handoff threshold (%)**.
-
-### handoff-pickup
-
-**Why:** you write a handoff on Friday, close up, and on Monday you've forgotten it exists.
-The notes are sitting right there, and you start from scratch anyway.
-
-This mod reminds you. When a handoff is waiting, a line shows above the prompt:
-
-```
-Handoff waiting: Fix the login redirect (3 days ago) · /pickup
-```
-
-1. Run `/pickup`, then send any message. Claude reads the handoff and carries on.
-2. When the work is done, run `/pickup done`. The handoff file is deleted and the line goes away.
-
-It checks every 5 minutes, so a session you left open over the weekend shows it too.
-A handoff less than an hour old stays quiet, because you're most likely working from it.
-Handoffs that auto-handoff resumes count as picked up, so `/pickup done` cleans those up too.
-
-**Keep handoffs somewhere else?** open `/plugin`, pick `handoff-pickup`, and set **Handoff folder**.
-It defaults to `.claude/handoffs`.
-
-## Put the panel beside the chat
-
-Out of the box, the panel sits above the chat. Switch Claude Code to fullscreen view and it
-docks on the right, which is how it's meant to be used:
-
-```
-/tui fullscreen
-```
-
-It's saved for every new session. Fullscreen needs a terminal at least 110 columns wide.
-Changed your mind? `/tui default` takes you back.
-
-Too wide or too narrow? Drag the panel's edge. Claude Code remembers the size.
-
-<details>
-
-<summary><b>Fullscreen troubleshooting</b></summary>
-
-- **Scrolling feels slow.** Run `/scroll-speed` and pick a bigger number.
-- **Old text stays on screen (Windows Terminal, WSL).** Start Claude with
-  `CLAUDE_CODE_ALT_SCREEN_FULL_REPAINT=1 claude`.
-- **A session you already had open didn't change.** Open sessions keep their view.
-  Run `/tui fullscreen` in each one.
-- **Using herdr and the panel won't dock.** Update herdr to 0.9.3 or newer, then run
-  `herdr integration install claude`.
-
-</details>
 
 <details>
 
@@ -145,6 +56,7 @@ Too wide or too narrow? Drag the panel's edge. Claude Code remembers the size.
 /plugin update branch-status@spardutti-mods
 /plugin update auto-handoff@spardutti-mods
 /plugin update handoff-pickup@spardutti-mods
+/plugin update blocked-run@spardutti-mods
 /reload-plugins
 ```
 
