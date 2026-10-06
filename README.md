@@ -45,8 +45,6 @@ Each mod has its own page with the full story.
 | [handoff-pickup](docs/mods/handoff-pickup.md) | Reminds you of a handoff you left behind. `/pickup` picks it up, `/pickup done` deletes it. |
 | [blocked-run](docs/mods/blocked-run.md) | When auto mode blocks a command, it shows above the prompt with a button to run it yourself. |
 
-<img src="docs/branch-status.svg" alt="The branch-status panel: main, develop with 3 merges to release, and feat/login with 2 commits" width="600">
-
 <details>
 
 <summary><b>Updating</b></summary>
@@ -61,17 +59,3 @@ Each mod has its own page with the full story.
 ```
 
 </details>
-
-## Make your own
-
-Each mod is a folder in `plugins/` plus one line in `.claude-plugin/marketplace.json`.
-In Claude Code, ask for the `plugin-authoring` skill and describe the panel you want.
-Before you push, run the checks:
-
-```
-claude plugin validate plugins/<mod>
-claude plugin test plugins/<mod>
-claude plugin validate .
-```
-
-Got an idea for a mod, or found a bug? [Open an issue](https://github.com/Spardutti/claude-mods/issues).
