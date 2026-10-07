@@ -44,6 +44,14 @@ async function pickUp($: EngineInterface, folder: string) {
   }
 }
 
+async function dismiss($: EngineInterface, folder: string) {
+  const { value: shown } = await $.state.get(ref)
+  if (!shown) return { text: `No handoff waiting in ${folder}.` }
+  await $.store.set(pickKey(shown.path), true)
+  await refresh($, folder)
+  return { text: `Hid ${shown.path}. The file is still there.` }
+}
+
 async function finish($: EngineInterface, folder: string) {
   const path = pickedUp
   if (!path) return { text: 'Nothing picked up in this session. Run /pickup first.' }
@@ -57,17 +65,22 @@ async function finish($: EngineInterface, folder: string) {
 
 export const register: Register = (on, options) => {
   const folder = String(options.folder).replace(/\/+$/, '')
-  const resumed = new RegExp(`^Read (${folder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/[\\w-]+\\.md) and continue\\.$`)
+  const resumed = new RegExp(`^Read (${folder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/[\\w-][\\w.-]*\\.md) and continue\\.$`)
 
   on('session.start', async ($, e, next) => {
     cwd = e.cwd
-    await $.command.register({ name: COMMAND, description: 'Pick up the waiting handoff, or "/pickup done" to delete it' })
+    await $.command.register({ name: COMMAND, description: 'Pick up the waiting handoff, "/pickup done" to delete it, "/pickup dismiss" to hide it' })
     await refresh($, folder)
     $.clock.every(REFRESH_MS, () => void refresh($, folder))
     return next(e)
   })
 
-  on('command.run', { command: COMMAND }, async ($, e) => (e.args.trim() === 'done' ? finish($, folder) : pickUp($, folder)))
+  on('command.run', { command: COMMAND }, async ($, e) => {
+    const arg = e.args.trim()
+    if (arg === 'done') return finish($, folder)
+    if (arg === 'dismiss') return dismiss($, folder)
+    return pickUp($, folder)
+  })
 
   // auto-handoff resumes with this exact prompt, so its handoff counts as picked up here.
   on('prompt.submit', async ($, e, next) => {

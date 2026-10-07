@@ -22,6 +22,8 @@ Handoff waiting: Fix the login redirect (3 days ago) · /pickup
 1. Run `/pickup`, then send any message. Claude reads the handoff and carries on.
 2. When the work is done, run `/pickup done`. The handoff file is deleted and the line goes away.
 
+Don't want it? Run `/pickup dismiss`. The line goes away, and the file stays.
+
 ## Good to know
 
 - **Why you send a message after `/pickup`:** a command can't start Claude's turn by itself,
