@@ -1,6 +1,6 @@
 {
   "name": "handoff-pickup",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Reminds you of a handoff you left behind, picks it up with /pickup, and deletes it when you're done",
   "author": { "name": "Damian" },
   "types": "./types/index.d.ts",

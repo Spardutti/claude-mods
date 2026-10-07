@@ -83,6 +83,17 @@ test("a handoff auto-handoff resumed counts as picked up", async ($, on) => {
   expect(seen.removed).toEqual([['rm', '--', PATH]])
 })
 
+test('a resumed handoff with dots in its name counts as picked up', async ($, on) => {
+  const seen = fakeProject(on)
+  const dotted = '.claude/handoffs/2026-10-07-v9.3.0-rollout.md'
+  await start($)
+  await $.prompt.submit({ text: `Read ${dotted} and continue.`, wait: false, origin: { kind: 'composer' } })
+
+  await pickup($, 'done')
+
+  expect(seen.removed).toEqual([['rm', '--', dotted]])
+})
+
 test('a handoff under an hour old is not offered', async ($, on) => {
   fakeProject(on, HOUR - 1)
   await start($)
@@ -136,6 +147,32 @@ test('picking up a handoff saves it in the store', async ($, on) => {
   await pickup($)
 
   expect([...seen.stored]).toEqual([[`picked:/project/${PATH}`, true]])
+})
+
+test('/pickup dismiss hides the waiting handoff without deleting it', async ($, on) => {
+  const seen = fakeProject(on)
+  await start($)
+
+  const result = await pickup($, 'dismiss')
+
+  expect(result.text).toBe(`Hid ${PATH}. The file is still there.`)
+  expect([...seen.stored]).toEqual([[`picked:/project/${PATH}`, true]])
+  expect(seen.removed).toEqual([])
+})
+
+test('after /pickup dismiss nothing is waiting', async ($, on) => {
+  fakeProject(on)
+  await start($)
+  await pickup($, 'dismiss')
+
+  expect((await pickup($)).text).toBe('No handoff waiting in .claude/handoffs.')
+})
+
+test('/pickup dismiss with nothing waiting says so', async ($, on) => {
+  fakeProject(on, HOUR - 1)
+  await start($)
+
+  expect((await pickup($, 'dismiss')).text).toBe('No handoff waiting in .claude/handoffs.')
 })
 
 test('/pickup done removes the handoff from the store', async ($, on) => {
