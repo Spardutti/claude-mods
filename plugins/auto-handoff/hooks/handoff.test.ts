@@ -9,6 +9,11 @@ test('the handoff path is read from the skill answer, with or without backticks'
   expect(handoffPath(`Handoff written: \`${PATH}\``)).toBe(PATH)
 })
 
+test('a handoff name with dots in it is read whole', () => {
+  const dotted = '.claude/handoffs/2026-10-07-v9.3.0-rollout.md'
+  expect(handoffPath(`Handoff written: ${dotted}\n\nNext session, paste:`)).toBe(dotted)
+})
+
 test('an answer without a written handoff gives no path', () => {
   expect(handoffPath("I didn't write a handoff file.")).toBeUndefined()
 })
