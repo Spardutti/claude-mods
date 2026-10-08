@@ -1,6 +1,6 @@
 {
   "name": "auto-handoff",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Hands the work to a fresh, named session when the context gets too full, using your /handoff command",
   "author": { "name": "Damian" },
   "types": "./types/index.d.ts",
