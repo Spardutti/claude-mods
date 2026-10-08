@@ -50,6 +50,7 @@ async function start($: EngineInterface, percent: number) {
 }
 
 async function countDown($: EngineInterface, percent: number, threshold: number) {
+  if (countdown) return
   let secondsLeft = COUNTDOWN_SECONDS
   await show($, { percent, threshold, secondsLeft })
   countdown = $.clock.every(1000, () => {

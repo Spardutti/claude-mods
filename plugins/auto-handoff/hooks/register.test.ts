@@ -112,6 +112,17 @@ for (const [name, fields] of [
   })
 }
 
+test('two turns ending during one countdown start the handoff once', async ($, on) => {
+  const seen = fakeSession(on, { percent: 61, commands: ['handoff'] })
+
+  await endTurn($)
+  await seen.wait(2000)
+  await endTurn($)
+  await seen.wait(3 * COUNTDOWN_MS)
+
+  expect(seen.ran).toEqual(['handoff'])
+})
+
 test('the handoff waits out the countdown before it starts', async ($, on) => {
   const seen = fakeSession(on, { percent: 61, commands: ['handoff'] })
 
