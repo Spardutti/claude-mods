@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Waiting } from '../types'
-import { ageOf, handoffTitle, waitingFiles } from './waiting'
+import { ageOf, handoffFiles, handoffTitle, waitingFiles } from './waiting'
 
 const COMMAND = 'pickup'
 const REFRESH_MS = 5 * 60_000
@@ -21,11 +21,15 @@ async function markPicked($: EngineInterface, path: string) {
   await $.store.set(pickKey(path), true)
 }
 
-async function refresh($: EngineInterface, folder: string) {
+async function unpickedHandoffs($: EngineInterface, folder: string) {
   const entries = await $.fs.list(folder).catch(() => [])
-  const now = await $.clock.now()
   const picked = new Set(await $.store.keys())
-  const files = waitingFiles(entries, now).filter(e => !picked.has(pickKey(`${folder}/${e.name}`)))
+  return handoffFiles(entries).filter(e => !picked.has(pickKey(`${folder}/${e.name}`)))
+}
+
+async function refresh($: EngineInterface, folder: string) {
+  const now = await $.clock.now()
+  const files = waitingFiles(await unpickedHandoffs($, folder), now)
   const [newest] = files
   if (!newest) return update($, waiting, () => null)
   const path = `${folder}/${newest.name}`
@@ -34,13 +38,15 @@ async function refresh($: EngineInterface, folder: string) {
 }
 
 async function pickUp($: EngineInterface, folder: string) {
-  const { value: shown } = await $.state.get(ref)
-  if (!shown) return { text: `No handoff waiting in ${folder}.` }
-  await markPicked($, shown.path)
+  const [newest] = await unpickedHandoffs($, folder)
+  if (!newest) return { text: `No handoff waiting in ${folder}.` }
+  const path = `${folder}/${newest.name}`
+  const title = handoffTitle(newest.name, await $.fs.read(path))
+  await markPicked($, path)
   await refresh($, folder)
   return {
-    text: `Picked up: ${shown.title}. Send any message to start.`,
-    context: [`Read ${shown.path} and continue from it. When the work is done, tell the person to run /pickup done to delete it.`],
+    text: `Picked up: ${title}. Send any message to start.`,
+    context: [`Read ${path} and continue from it. When the work is done, tell the person to run /pickup done to delete it.`],
   }
 }
 

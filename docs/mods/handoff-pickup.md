@@ -29,7 +29,7 @@ Don't want it? Run `/pickup dismiss`. The line goes away, and the file stays.
 - **Why you send a message after `/pickup`:** a command can't start Claude's turn by itself,
   so the note waits for your next message.
 - **It checks every 5 minutes**, so a session you left open over the weekend shows it too.
-- **A handoff less than an hour old stays quiet**, because you're most likely working from it.
+- **A handoff less than an hour old stays quiet**, because you're most likely working from it. `/pickup` still takes it.
 - **A picked-up handoff stays hidden**, even after a reload or in another session.
 - **Handoffs that [auto-handoff](auto-handoff.md) resumes count as picked up**, so `/pickup done` cleans those up too.
 - **More than one waiting?** It shows the newest, with "(+2 more)" after it.
