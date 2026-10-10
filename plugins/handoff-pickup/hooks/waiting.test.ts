@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { ageOf, handoffTitle, waitingFiles } from './waiting'
+import { ageOf, handoffFiles, handoffTitle, waitingFiles } from './waiting'
 
 const HOUR = 3_600_000
 const NOW = 100 * 24 * HOUR
@@ -12,6 +12,10 @@ test('a handoff exactly an hour old is waiting', () => {
 
 test('a handoff just under an hour old is not waiting yet', () => {
   expect(waitingFiles([file('a.md', HOUR - 1)], NOW)).toEqual([])
+})
+
+test('a handoff of any age is a handoff file', () => {
+  expect(handoffFiles([file('a.md', 0)]).map(e => e.name)).toEqual(['a.md'])
 })
 
 test('only markdown files count, newest first', () => {

@@ -3,11 +3,15 @@ export type Entry = { name: string; kind: string; mtimeMs: number }
 const HOUR = 3_600_000
 const DAY = 24 * HOUR
 
+export function handoffFiles(entries: readonly Entry[]): Entry[] {
+  return entries
+    .filter(e => e.kind === 'file' && e.name.endsWith('.md'))
+    .sort((a, b) => b.mtimeMs - a.mtimeMs)
+}
+
 // A handoff written within the hour is most likely being worked from right now.
 export function waitingFiles(entries: readonly Entry[], now: number): Entry[] {
-  return entries
-    .filter(e => e.kind === 'file' && e.name.endsWith('.md') && now - e.mtimeMs >= HOUR)
-    .sort((a, b) => b.mtimeMs - a.mtimeMs)
+  return handoffFiles(entries).filter(e => now - e.mtimeMs >= HOUR)
 }
 
 export function handoffTitle(name: string, doc: string): string {

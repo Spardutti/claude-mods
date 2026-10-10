@@ -94,11 +94,24 @@ test('a resumed handoff with dots in its name counts as picked up', async ($, on
   expect(seen.removed).toEqual([['rm', '--', dotted]])
 })
 
-test('a handoff under an hour old is not offered', async ($, on) => {
+test('/pickup takes a handoff under an hour old', async ($, on) => {
   fakeProject(on, HOUR - 1)
   await start($)
 
-  expect((await pickup($)).text).toBe('No handoff waiting in .claude/handoffs.')
+  const result = await pickup($)
+
+  expect(result.text).toBe('Picked up: Fix the login redirect. Send any message to start.')
+  expect(result.context).toEqual([`Read ${PATH} and continue from it. When the work is done, tell the person to run /pickup done to delete it.`])
+})
+
+test('the strip stays quiet for a handoff under an hour old', async ($, on) => {
+  fakeProject(on, HOUR - 1)
+  on('ui.render', async ($, e) => h($.ui.resolve(e).Text, {}, 'engine band') as RenderElement)
+  await start($)
+
+  const ui = await $.ui.mount({ plugin: 'handoff-pickup', surface: 'terminal', component: 'AbovePrompt', props: BAND_PROPS })
+
+  expect(await ui.find({ text: /Handoff waiting/ })).toBeUndefined()
 })
 
 test('the folder setting is where it looks', { options: { folder: 'notes/handoffs/' } }, async ($, on) => {
