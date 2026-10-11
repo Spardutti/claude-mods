@@ -14,6 +14,11 @@ test('a handoff name with dots in it is read whole', () => {
   expect(handoffPath(`Handoff written: ${dotted}\n\nNext session, paste:`)).toBe(dotted)
 })
 
+test('a reworded answer still gives the handoff path', () => {
+  const answer = `I wrote the handoff: \`${PATH}\`\n\nThe tree is clean.\n\nNext session, paste:\n  Read ${PATH} and continue.`
+  expect(handoffPath(answer)).toBe(PATH)
+})
+
 test('an answer without a written handoff gives no path', () => {
   expect(handoffPath("I didn't write a handoff file.")).toBeUndefined()
 })

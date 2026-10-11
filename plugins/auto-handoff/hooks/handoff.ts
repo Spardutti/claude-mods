@@ -1,6 +1,7 @@
 // Only a file the handoff skill writes is accepted: .claude/handoffs/<name>.md, no slashes or dots up.
+// Matched anywhere in the answer, since output styles reword the skill's "Handoff written:" line.
 export function handoffPath(answer: string): string | undefined {
-  return answer.match(/Handoff written:\s*`?(\.claude\/handoffs\/[\w-][\w.-]*\.md)\b/)?.[1]
+  return answer.match(/\.claude\/handoffs\/[\w-][\w.-]*\.md\b/)?.[0]
 }
 
 export function sessionName(path: string, doc: string): string {
