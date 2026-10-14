@@ -33,6 +33,12 @@ until the session is already struggling.
 
 - No `/handoff` command installed? It runs a normal `/compact` instead. Same if the handoff
   skill decides there's nothing worth writing down.
+- Background work still running (a test run, a build)? It waits for it to finish, asks
+  Claude to add the results to the handoff, and only then clears.
+- It only resumes from a handoff written during this handoff. If Claude names an older
+  file, it runs `/compact` instead.
+- A fresh session that starts near the threshold won't hand off again right away. It
+  waits until the context grows 10 points past where the fresh session started.
 - It only checks when a turn ends, never in the middle of work.
 - It skips subagents and interrupted turns.
 - The handoff it writes counts as picked up in [handoff-pickup](handoff-pickup.md).
