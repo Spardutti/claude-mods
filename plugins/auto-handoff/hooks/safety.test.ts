@@ -1,0 +1,73 @@
+import { expect, test } from 'claude-code/testing'
+
+import { COUNTDOWN_MS, endTurn, fakeSession, PATH, WRITTEN } from './fake-session'
+import type { Engine, Seen } from './fake-session'
+
+const FOLD_IN = `The background work finished. Add its results to ${PATH}, then reply with that path.`
+const RESUMED = ['handoff', 'clear', 'rename Fix the login redirect']
+
+async function handOff($: Engine, seen: Seen, backgroundTasks = 0) {
+  await endTurn($)
+  await seen.wait(COUNTDOWN_MS)
+  await endTurn($, { answer: WRITTEN, backgroundTasks })
+}
+
+test('while background work runs, the session is not cleared', async ($, on) => {
+  const seen = fakeSession(on, { percent: 61, commands: ['handoff'] })
+
+  await handOff($, seen, 1)
+
+  expect([seen.ran, seen.prompts]).toEqual([['handoff'], []])
+})
+
+test('once background work ends, Claude is asked to add its results to the handoff', async ($, on) => {
+  const seen = fakeSession(on, { percent: 61, commands: ['handoff'] })
+  await handOff($, seen, 1)
+
+  await endTurn($, { answer: 'The tests passed.' })
+
+  expect([seen.ran, seen.prompts]).toEqual([['handoff'], [FOLD_IN]])
+})
+
+test('after the results are added, the fresh session resumes', async ($, on) => {
+  const seen = fakeSession(on, { percent: 61, commands: ['handoff'] })
+  await handOff($, seen, 1)
+  await endTurn($, { answer: 'The tests passed.' })
+
+  await endTurn($, { answer: WRITTEN })
+
+  expect(seen.ran).toEqual(RESUMED)
+})
+
+test('a handoff file older than this handoff is refused, and the session compacts', async ($, on) => {
+  const seen = fakeSession(on, { percent: 61, commands: ['handoff'], handoffAgeMs: 60_000 })
+
+  await handOff($, seen)
+
+  expect(seen.ran).toEqual(['handoff', 'compact'])
+})
+
+test('a fresh session that starts above the threshold does not hand off again', async ($, on) => {
+  const fake = { percent: 61, commands: ['handoff'] }
+  const seen = fakeSession(on, fake)
+  await handOff($, seen)
+
+  fake.percent = 70
+  await endTurn($)
+  await seen.wait(COUNTDOWN_MS)
+
+  expect(seen.ran).toEqual(RESUMED)
+})
+
+test('a fresh session hands off again once it grows 10 points past its start', async ($, on) => {
+  const fake = { percent: 61, commands: ['handoff'] }
+  const seen = fakeSession(on, fake)
+  await handOff($, seen)
+  await endTurn($)
+
+  fake.percent = 71
+  await endTurn($)
+  await seen.wait(COUNTDOWN_MS)
+
+  expect(seen.ran).toEqual([...RESUMED, 'handoff'])
+})

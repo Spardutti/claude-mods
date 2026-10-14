@@ -1,46 +1,7 @@
-import { expect, mock, test } from 'claude-code/testing'
-import type { RenderElement } from 'claude-code'
-import type { TestBody } from 'claude-code/testing'
+import { expect, test } from 'claude-code/testing'
 
-const COUNTDOWN_MS = 10_000
-const PATH = '.claude/handoffs/2026-10-04-fix-login.md'
-const WRITTEN = `Handoff written: ${PATH}\n\nNext session, paste:\n  Read ${PATH} and continue.`
-
-// The test runtime has timers; the mod's type roots leave them out.
-declare function setTimeout(run: () => void, ms: number): unknown
-
-type Fake = { percent: number; commands: string[] }
-type Seen = { ran: string[]; prompts: string[]; wait: (ms: number) => Promise<void> }
-
-type Engine = Parameters<TestBody>[0]
-type On = Parameters<TestBody>[1]
-
-function fakeSession(on: On, fake: Fake): Seen {
-  const clock = mock.clock(on)
-  const seen: Seen = { ran: [], prompts: [], wait: ms => clock.advance(ms) }
-  on('turn.complete', async (_, e) => ({ text: e.answer }))
-  on('session.usage', async () => ({ value: { startedAt: 0, rateLimits: [], context: { window: 1_000_000, percent: fake.percent } } }))
-  on('command.list', async () => ({ value: fake.commands.map(name => ({ name, description: '', source: 'user' as const })) }))
-  on('command.run', async (_, e) => {
-    seen.ran.push(e.args ? `${e.command} ${e.args}` : e.command)
-    return {}
-  })
-  on('ui.render', async ($, e) => h($.ui.resolve(e).Text, {}, 'engine band') as RenderElement)
-  on('fs.read', async () => ({ value: '# Handoff — Fix the login redirect\n' }))
-  on('prompt.submit', async (_, e) => {
-    seen.prompts.push(e.text)
-    return { text: e.text }
-  })
-  return seen
-}
-
-let turns = 0
-async function endTurn($: Engine, fields: { answer?: string; reason?: 'answer' | 'aborted'; agentId?: string } = {}) {
-  turns += 1
-  const reason = fields.reason ?? 'answer'
-  await $.turn.complete({ answer: fields.answer ?? 'ok', durationMs: 1, isAborted: reason === 'aborted', turnId: `t${turns}`, reason, agentId: fields.agentId })
-  await new Promise<void>(resolve => setTimeout(resolve, 0))
-}
+import { COUNTDOWN_MS, endTurn, fakeSession, PATH, WRITTEN } from './fake-session'
+import type { Engine } from './fake-session'
 
 test('above the threshold, the handoff is written, then a fresh named session resumes from it', async ($, on) => {
   const seen = fakeSession(on, { percent: 61, commands: ['handoff'] })
