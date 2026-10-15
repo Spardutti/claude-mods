@@ -75,28 +75,33 @@ async function apps($: EngineInterface, e: PaneInput) {
   const shown = await read($, project)
   if (!shown) return undefined
   const actions = { start: () => void start($), stop: () => void stop($) }
-  return drawApps($, e, shown, await $.clock.now(), actions)
+  return drawApps($, e, { project: shown, now: await $.clock.now(), actions })
+}
+
+async function startSession($: EngineInterface, cwd: string) {
+  await $.command.register({ name: 'apps', description: "Open, start and stop this project's browser apps" })
+  void load($, cwd).then(async found => {
+    await update($, project, () => found)
+    await poll($)
+  })
+  $.clock.every(POLL_MS, () => void poll($))
+}
+
+async function openPanel($: EngineInterface) {
+  if (!(await read($, project))) return { text: 'No browser apps for this project in dev-ports.' }
+  await $.ui.open({ id: PANE, title: 'Apps' })
+
+  return { text: 'Apps panel opened.' }
 }
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'apps', description: "Open, start and stop this project's browser apps" })
-    void load($, e.cwd).then(async found => {
-      await update($, project, () => found)
-      await poll($)
-    })
-    $.clock.every(POLL_MS, () => void poll($))
+    await startSession($, e.cwd)
 
     return next(e)
   })
 
-  on('command.run', { command: 'apps' }, async $ => {
-    const shown = await read($, project)
-    if (!shown) return { text: 'No browser apps for this project in dev-ports.' }
-    await $.ui.open({ id: PANE, title: 'Apps' })
-
-    return { text: 'Apps panel opened.' }
-  })
+  on('command.run', { command: 'apps' }, openPanel)
 
   // A /clear or a resume keeps Claude running, so the apps stay up.
   on('session.end', async ($, e, next) => {
@@ -109,7 +114,7 @@ export const register: Register = on => {
     const git = await next(e)
     const drawn = await apps($, e)
 
-    return drawn ? splitPane($, e, git, drawn) : git
+    return drawn ? splitPane($, e, { top: git, apps: drawn }) : git
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {

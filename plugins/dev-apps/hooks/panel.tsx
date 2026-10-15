@@ -9,9 +9,11 @@ export type PaneInput = { [S in RenderSurface]: RenderInputOf<'Pane', S> }[Rende
 
 export type Actions = { start: () => void; stop: () => void }
 
+export type View = { project: Project; now: number; actions: Actions }
+
 const COLOR: Record<Status, string | undefined> = { running: 'green', starting: 'yellow', failed: 'red', stopped: undefined }
 
-function controls($: EngineInterface, e: PaneInput, project: Project, actions: Actions) {
+function controls($: EngineInterface, e: PaneInput, { project, actions }: View) {
   const { Box, Button, Text } = $.ui.resolve(e)
   if (!project.launcher) return <Text dimColor>No start command found. Open only.</Text>
   const isUp = project.apps.some(app => project.listening.includes(app.port))
@@ -25,7 +27,8 @@ function controls($: EngineInterface, e: PaneInput, project: Project, actions: A
   )
 }
 
-export function drawApps($: EngineInterface, e: PaneInput, project: Project, now: number, actions: Actions) {
+export function drawApps($: EngineInterface, e: PaneInput, view: View) {
+  const { project, now } = view
   const { Box, Link, Text } = $.ui.resolve(e)
   const rows = project.apps.map(app => ({ ...app, status: statusOf(project.listening.includes(app.port), project.startedAt, now) }))
   return (
@@ -38,12 +41,12 @@ export function drawApps($: EngineInterface, e: PaneInput, project: Project, now
         </Box>
       ))}
       {rows.some(row => row.status === 'failed') ? <Text color="red">Didn't start in 90s. Log: {LOG_FOLDER}/{project.name}/</Text> : <Text />}
-      {controls($, e, project, actions)}
+      {controls($, e, view)}
     </Box>
   )
 }
 
-export function splitPane($: EngineInterface, e: PaneInput, top: RenderChildren, apps: RenderChildren) {
+export function splitPane($: EngineInterface, e: PaneInput, { top, apps }: { top: RenderChildren; apps: RenderChildren }) {
   const { Box, Text } = $.ui.resolve(e)
   const rows = e.props.scroll.bodyRows
   const half = Math.floor(rows / 2)
