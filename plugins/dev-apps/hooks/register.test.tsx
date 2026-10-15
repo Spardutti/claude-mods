@@ -4,7 +4,7 @@ import type { TestBody } from 'claude-code/testing'
 
 type Engine = Parameters<TestBody>[0]
 type On = Parameters<TestBody>[1]
-type Machine = { listening: number[]; files: Record<string, string>; ran: string[][]; isOtherSessionOpen?: boolean }
+type Machine = { listening: number[]; files: Record<string, string>; ran: string[][]; isOtherSessionOpen?: boolean; isGitBelow: boolean }
 
 // The test runtime has timers; the mod's type roots leave them out.
 declare function setTimeout(run: () => void, ms: number): unknown
@@ -22,7 +22,7 @@ function stdoutFor(argv: readonly string[], cwd: string, machine: Machine) {
 }
 
 function fakeMachine(on: On, files: Record<string, string> = { 'docker-compose.yml': COMPOSE, '.env': 'WEB_PORT=4321\n' }): Machine {
-  const machine: Machine = { listening: [], files, ran: [] }
+  const machine: Machine = { listening: [], files, ran: [], isGitBelow: true }
   on('session.start', async (_, e) => ({ cwd: e.cwd }))
   on('session.end', async (_, e) => ({ sessionId: e.sessionId }))
   on('session.id', async () => ({ value: 'session-1' }))
@@ -30,7 +30,11 @@ function fakeMachine(on: On, files: Record<string, string> = { 'docker-compose.y
   on('clock.every', () => new Promise(() => {}))
   on('clock.now', async () => ({ value: 1_000 }))
   on('ui.open', async () => ({ value: { isPlaced: true as const } }))
-  on('ui.render', async ($, e) => h($.ui.resolve(e).Text, {}, 'the git graph') as RenderElement)
+  on('ui.render', async ($, e) => {
+    const { Box, Text } = $.ui.resolve(e)
+    const graph = h(Text, {}, 'the git graph')
+    return (machine.isGitBelow ? h(Box, { key: 'git-graph' }, graph) : h(Text, {}, 'engine pane')) as RenderElement
+  })
   on('fs.list', async () => ({ value: Object.keys(machine.files).map(name => ({ name, kind: 'file' as const, size: 1, mtimeMs: 0, isLink: false })) }))
   on('fs.read', async (_, e) => ({ value: machine.files[e.path.slice(ROOT.length + 1)] ?? '' }))
   on('process.run', async (_, e) => {
@@ -143,4 +147,15 @@ test('exiting while another session has the project open leaves it running', asy
   await end($, 'prompt_input_exit')
 
   expect(composeRuns(machine)).toEqual([])
+})
+
+test('drawn before branch-status, it hands up the apps alone, tagged for branch-status to stack', async ($, on) => {
+  const machine = fakeMachine(on)
+  machine.isGitBelow = false
+  await open($)
+
+  const drawn = await (await mountGit($)).drawn()
+
+  expect(JSON.stringify(drawn)).toContain('"key":"dev-apps"')
+  expect(JSON.stringify(drawn)).not.toContain('engine pane')
 })
