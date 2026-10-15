@@ -1,0 +1,9 @@
+{
+    "name": "dev-apps",
+    "version": "0.1.0",
+    "description": "Open, start and stop this project's browser apps from the Git panel",
+    "author": {
+        "name": "Damian"
+    },
+    "types": "./types/index.d.ts"
+}
