@@ -2,7 +2,7 @@ import type { EngineInterface, RenderChildren, RenderInputOf, RenderSurface } fr
 
 import type { Project } from '../types'
 import { LOG_FOLDER } from './commands'
-import { statusOf } from './running'
+import { isBusy, statusOf } from './running'
 import type { Status } from './running'
 
 export type PaneInput = { [S in RenderSurface]: RenderInputOf<'Pane', S> }[RenderSurface]
@@ -11,18 +11,19 @@ export type Actions = { start: () => void; stop: () => void }
 
 export type View = { project: Project; now: number; actions: Actions }
 
-const COLOR: Record<Status, string | undefined> = { running: 'green', starting: 'yellow', failed: 'red', stopped: undefined }
+const COLOR: Record<Status, string | undefined> = { running: 'green', starting: 'yellow', stopping: 'yellow', failed: 'red', stopped: undefined }
 
-function controls($: EngineInterface, e: PaneInput, { project, actions }: View) {
+function controls($: EngineInterface, e: PaneInput, { project, now, actions }: View) {
   const { Box, Button, Text } = $.ui.resolve(e)
   if (!project.launcher) return <Text dimColor>No start command found. Open only.</Text>
   const isUp = project.apps.some(app => project.listening.includes(app.port))
   const isDown = project.apps.some(app => !project.listening.includes(app.port))
+  const isPressed = isBusy(project, now)
   return (
     <Box>
-      {isDown && project.startedAt === undefined ? <Button key="start" label="Start" onPress={actions.start} /> : <Text />}
-      {isUp ? <Text> </Text> : <Text />}
-      {isUp ? <Button key="stop" label="Stop" onPress={actions.stop} /> : <Text />}
+      {isDown && !isPressed ? <Button key="start" label="Start" onPress={actions.start} /> : <Text />}
+      {isUp && !isPressed ? <Text> </Text> : <Text />}
+      {isUp && !isPressed ? <Button key="stop" label="Stop" onPress={actions.stop} /> : <Text />}
     </Box>
   )
 }
@@ -30,7 +31,7 @@ function controls($: EngineInterface, e: PaneInput, { project, actions }: View) 
 export function drawApps($: EngineInterface, e: PaneInput, view: View) {
   const { project, now } = view
   const { Box, Link, Text } = $.ui.resolve(e)
-  const rows = project.apps.map(app => ({ ...app, status: statusOf(project.listening.includes(app.port), project.startedAt, now) }))
+  const rows = project.apps.map(app => ({ ...app, status: statusOf(project.listening.includes(app.port), project, now) }))
   return (
     <Box flexDirection="column">
       <Text bold>Apps <Text dimColor>{project.name}</Text></Text>

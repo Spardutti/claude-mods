@@ -9,6 +9,7 @@ export type Project = {
   launcher?: Launcher
   listening: number[]
   startedAt?: number
+  stoppingAt?: number
 }
 
 declare module 'claude-code' {

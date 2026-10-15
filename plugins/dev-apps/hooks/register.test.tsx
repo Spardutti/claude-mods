@@ -111,6 +111,19 @@ test('stop runs docker compose down', async ($, on) => {
   expect(composeRuns(machine)).toEqual(['docker compose down'])
 })
 
+test('pressing stop shows stopping and hides the buttons while the apps still answer', async ($, on) => {
+  const machine = fakeMachine(on)
+  machine.listening = [4321, 4322]
+  await open($)
+  const ui = await mountGit($)
+
+  await ui.press({ key: 'stop' })
+  await settle()
+
+  expect(await ui.find({ text: /web stopping/ })).toBeDefined()
+  expect([await ui.find({ key: 'stop' }), await ui.find({ key: 'start' })]).toEqual([undefined, undefined])
+})
+
 test('no file naming the ports shows Open only, with no start button', async ($, on) => {
   fakeMachine(on, { 'package.json': '{"scripts":{"dev":"vite"}}' })
   await open($)
