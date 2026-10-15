@@ -1,6 +1,9 @@
 export const START_MS = 90_000
+export const STOP_MS = 90_000
 
-export type Status = 'stopped' | 'starting' | 'running' | 'failed'
+export type Status = 'stopped' | 'starting' | 'running' | 'stopping' | 'failed'
+
+export type Pending = { startedAt?: number; stoppingAt?: number }
 
 export function listeningPorts(ss: string): number[] {
   const ports = ss
@@ -11,8 +14,12 @@ export function listeningPorts(ss: string): number[] {
   return [...new Set(ports)]
 }
 
-export function statusOf(isListening: boolean, startedAt: number | undefined, now: number): Status {
-  if (isListening) return 'running'
+// True while a press is within its window: a start or stop that outlived it no longer blocks the buttons.
+export const isBusy = ({ startedAt, stoppingAt }: Pending, now: number) =>
+  (startedAt !== undefined && now - startedAt <= START_MS) || (stoppingAt !== undefined && now - stoppingAt <= STOP_MS)
+
+export function statusOf(isListening: boolean, { startedAt, stoppingAt }: Pending, now: number): Status {
+  if (isListening) return stoppingAt !== undefined && now - stoppingAt <= STOP_MS ? 'stopping' : 'running'
   if (startedAt === undefined) return 'stopped'
   return now - startedAt <= START_MS ? 'starting' : 'failed'
 }

@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { START_MS, listeningPorts, statusOf } from './running'
+import { START_MS, STOP_MS, isBusy, listeningPorts, statusOf } from './running'
 
 const SS = [
   'LISTEN 0      4096    127.0.0.53%lo:53      0.0.0.0:*',
@@ -19,17 +19,37 @@ test('no output means nothing is listening', () => {
 })
 
 test('a listening port is running, even while a start is pending', () => {
-  expect(statusOf(true, 1_000, 2_000)).toBe('running')
+  expect(statusOf(true, { startedAt: 1_000 }, 2_000)).toBe('running')
 })
 
 test('a port never started and not listening is stopped', () => {
-  expect(statusOf(false, undefined, 2_000)).toBe('stopped')
+  expect(statusOf(false, {}, 2_000)).toBe('stopped')
 })
 
 test('a start is still starting exactly at the limit', () => {
-  expect(statusOf(false, 0, START_MS)).toBe('starting')
+  expect(statusOf(false, { startedAt: 0 }, START_MS)).toBe('starting')
 })
 
 test('a start that is not listening one moment past the limit failed', () => {
-  expect(statusOf(false, 0, START_MS + 1)).toBe('failed')
+  expect(statusOf(false, { startedAt: 0 }, START_MS + 1)).toBe('failed')
+})
+
+test('a listening port is stopping exactly at the stop limit', () => {
+  expect(statusOf(true, { stoppingAt: 0 }, STOP_MS)).toBe('stopping')
+})
+
+test('a port still listening one moment past the stop limit shows running again', () => {
+  expect(statusOf(true, { stoppingAt: 0 }, STOP_MS + 1)).toBe('running')
+})
+
+test('a stopped port is stopped even while the stop is pending', () => {
+  expect(statusOf(false, { stoppingAt: 0 }, 1_000)).toBe('stopped')
+})
+
+test('a press is busy exactly at its limit', () => {
+  expect([isBusy({ startedAt: 0 }, START_MS), isBusy({ stoppingAt: 0 }, STOP_MS)]).toEqual([true, true])
+})
+
+test('a press one moment past its limit no longer blocks the buttons', () => {
+  expect([isBusy({ startedAt: 0 }, START_MS + 1), isBusy({ stoppingAt: 0 }, STOP_MS + 1), isBusy({}, 0)]).toEqual([false, false, false])
 })

@@ -37,6 +37,7 @@ You end up hunting through terminals to find the URL, or to stop a stack you for
 - **Two sessions on one project:** closing one leaves the apps up. Only the last one to close stops them.
 - **`/clear` and `/resume` don't stop anything.** Claude is still running.
 - **A start that isn't up after 90 seconds shows as failed.** Its output is in `~/.cache/dev-apps/<project>/`.
+- **Stop shows `stopping`** until the apps stop answering, and the buttons hide meanwhile.
 - **No Git panel?** `/apps` opens the apps in their own panel.
 - **Worktrees count as their main project,** so they find the same rows in `dev-ports`.
 

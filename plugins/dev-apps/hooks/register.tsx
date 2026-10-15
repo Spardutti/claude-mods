@@ -51,21 +51,28 @@ async function poll($: EngineInterface) {
   void $.process.run(checkIn(shown.name, await $.session.id())).catch(() => undefined)
   const listening = listeningPorts((await output($, LISTENING)) ?? '')
   const isAllUp = shown.apps.every(app => listening.includes(app.port))
-  await update($, project, now => now && { ...now, listening, startedAt: isAllUp ? undefined : now.startedAt })
+  const isAllDown = !shown.apps.some(app => listening.includes(app.port))
+  await update($, project, now => now && {
+    ...now,
+    listening,
+    startedAt: isAllUp ? undefined : now.startedAt,
+    stoppingAt: isAllDown ? undefined : now.stoppingAt,
+  })
 }
 
 async function start($: EngineInterface) {
   const shown = await read($, project)
   if (!shown?.launcher) return
   const startedAt = await $.clock.now()
-  await update($, project, now => now && { ...now, startedAt })
+  await update($, project, now => now && { ...now, startedAt, stoppingAt: undefined })
   for (const argv of startCommands(shown.name, shown.launcher)) await $.process.run(argv, { cwd: shown.root })
 }
 
 async function stop($: EngineInterface) {
   const shown = await read($, project)
   if (!shown?.launcher) return
-  await update($, project, now => now && { ...now, startedAt: undefined })
+  const stoppingAt = await $.clock.now()
+  await update($, project, now => now && { ...now, startedAt: undefined, stoppingAt })
   await $.process.run(stopCommand(shown.name, shown.launcher), { cwd: shown.root })
 }
 
