@@ -24,6 +24,11 @@
       "name": "blocked-run",
       "source": "./plugins/blocked-run",
       "description": "When auto mode blocks a command, shows it above the prompt with a button to run it yourself"
+    },
+    {
+      "name": "dev-apps",
+      "source": "./plugins/dev-apps",
+      "description": "Open, start and stop this project's browser apps from the Git panel"
     }
   ]
 }

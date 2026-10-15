@@ -5,7 +5,7 @@
 **Little mods for Claude Code: panels that keep the stuff you'd normally go check next to the chat, and helpers that do the chores for you.**
 
 ![Claude Code 2.1.287+](https://img.shields.io/badge/Claude%20Code-2.1.287%2B-d97757)
-![mods: 4](https://img.shields.io/badge/mods-4-8aadf4)
+![mods: 5](https://img.shields.io/badge/mods-5-8aadf4)
 ![License: MIT](https://img.shields.io/badge/license-MIT-a6da95)
 
 </div>
@@ -30,6 +30,7 @@ Add the marketplace once, then install a mod:
 /plugin install auto-handoff@spardutti-mods
 /plugin install handoff-pickup@spardutti-mods
 /plugin install blocked-run@spardutti-mods
+/plugin install dev-apps@spardutti-mods
 ```
 
 Install any you like. Each one starts working on the next session start.
@@ -44,6 +45,7 @@ Each mod has its own page with the full story.
 | [auto-handoff](docs/mods/auto-handoff.md) | When the context gets too full, it warns you, counts down, then hands the work to a fresh session. |
 | [handoff-pickup](docs/mods/handoff-pickup.md) | Reminds you of a handoff you left behind. `/pickup` picks it up, `/pickup done` deletes it. |
 | [blocked-run](docs/mods/blocked-run.md) | When auto mode blocks a command, it shows above the prompt with a button to run it yourself. |
+| [dev-apps](docs/mods/dev-apps.md) | Under the Git panel: this project's apps, a link to open each, and Start and Stop. Stops them when you close Claude. |
 
 <details>
 
@@ -55,6 +57,7 @@ Each mod has its own page with the full story.
 /plugin update auto-handoff@spardutti-mods
 /plugin update handoff-pickup@spardutti-mods
 /plugin update blocked-run@spardutti-mods
+/plugin update dev-apps@spardutti-mods
 /reload-plugins
 ```
 
