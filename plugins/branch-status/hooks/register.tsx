@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register } from 'claude-code'
+import type { EngineInterface, Register, RenderChildren, RenderInputOf, RenderSurface } from 'claude-code'
 
 import type { Snapshot } from '../types'
 import { drawLanes, shortSubject } from './graph'
@@ -8,6 +8,9 @@ import { BASE, RELEASE, collect } from './snapshot'
 
 const PANE = 'branch-status'
 const PANE_COLUMNS = 56
+// Keys the Git graph and dev-apps tag their drawings with, so whichever runs first can stack both.
+const GIT_GRAPH = 'git-graph'
+const APPS_SECTION = 'dev-apps'
 const snapshot = atom({ plugin: 'branch-status', key: 'snapshot' } as const, { branch: '' } as Snapshot)
 
 let isRefreshing = false
@@ -63,6 +66,43 @@ function lanesOf({ branch, release, work, others = [] }: Snapshot): Lane[] {
   ]
 }
 
+type PaneInput = { [S in RenderSurface]: RenderInputOf<'Pane', S> }[RenderSurface]
+
+const isTagged = (tree: unknown, key: string) => (tree as { props?: { key?: string } } | undefined)?.props?.key === key
+
+async function drawGraph($: EngineInterface, e: PaneInput) {
+  const { Box, Text } = $.ui.resolve(e)
+  const state = await read($, snapshot)
+  if (state.error) return <Box key={GIT_GRAPH}><Text dimColor>{state.error}</Text></Box>
+  if (!state.hasBase) return <Box key={GIT_GRAPH}><Text dimColor>No {BASE} branch here.</Text></Box>
+
+  return (
+    <Box key={GIT_GRAPH} flexDirection="column">
+      {drawLanes(lanesOf(state)).map(({ lead, tail }) => (
+        <Box>
+          <Box flexShrink={0}><Text>{lead.map(({ text, ...style }) => <Text {...style}>{text}</Text>)}</Text></Box>
+          <Box flexShrink={1}><Text>{tail.map(({ text, ...style }) => <Text {...style}>{text}</Text>)}</Text></Box>
+        </Box>
+      ))}
+    </Box>
+  )
+}
+
+function stackApps($: EngineInterface, e: PaneInput, { graph, apps }: { graph: RenderChildren; apps: RenderChildren }) {
+  const { Box, Text } = $.ui.resolve(e)
+  const rows = e.props.scroll.bodyRows
+  const half = Math.floor(rows / 2)
+  return (
+    <Box flexDirection="column" height={rows}>
+      <Box flexDirection="column" height={half} overflow="hidden">{graph}</Box>
+      <Box flexDirection="column" height={rows - half}>
+        <Text dimColor>{'─'.repeat(e.props.bodyColumns)}</Text>
+        {apps}
+      </Box>
+    </Box>
+  )
+}
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'branch-status', description: 'Show where this branch stands against main' })
@@ -87,21 +127,10 @@ export const register: Register = on => {
     return ran
   })
 
-  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Text } = $.ui.resolve(e)
-    const state = await read($, snapshot)
-    if (state.error) return <Text dimColor>{state.error}</Text>
-    if (!state.hasBase) return <Text dimColor>No {BASE} branch here.</Text>
+  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e, next) => {
+    const graph = await drawGraph($, e)
+    const below = await next(e)
 
-    return (
-      <Box flexDirection="column">
-        {drawLanes(lanesOf(state)).map(({ lead, tail }) => (
-          <Box>
-            <Box flexShrink={0}><Text>{lead.map(({ text, ...style }) => <Text {...style}>{text}</Text>)}</Text></Box>
-            <Box flexShrink={1}><Text>{tail.map(({ text, ...style }) => <Text {...style}>{text}</Text>)}</Text></Box>
-          </Box>
-        ))}
-      </Box>
-    )
+    return isTagged(below, APPS_SECTION) ? stackApps($, e, { graph, apps: below }) : graph
   })
 }

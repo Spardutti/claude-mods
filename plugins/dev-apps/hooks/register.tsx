@@ -11,6 +11,9 @@ import { browserApps } from './registry'
 import { listeningPorts } from './running'
 
 const GIT_PANE = 'branch-status'
+// Keys the two mods tag their drawings with, so whichever runs first can stack both.
+const GIT_GRAPH = 'git-graph'
+const APPS_SECTION = 'dev-apps'
 const PANE = 'dev-apps'
 const POLL_MS = 3_000
 const project = atom({ plugin: 'dev-apps', key: 'project' } as const, null as Project | null)
@@ -19,6 +22,8 @@ async function output($: EngineInterface, argv: string[], cwd?: string) {
   const { exitCode, stdout } = await $.process.run(argv, { cwd }).catch(() => ({ exitCode: 1, stdout: '' }))
   return exitCode === 0 ? stdout : undefined
 }
+
+const isTagged = (tree: unknown, key: string) => (tree as { props?: { key?: string } } | undefined)?.props?.key === key
 
 const readFile = ($: EngineInterface, path: string) => $.fs.read(path).catch(() => undefined)
 
@@ -111,10 +116,13 @@ export const register: Register = on => {
   })
 
   on('ui.render', { component: 'Pane', requestId: GIT_PANE }, async ($, e, next) => {
-    const git = await next(e)
+    const below = await next(e)
     const drawn = await apps($, e)
+    if (!drawn) return below
+    if (isTagged(below, GIT_GRAPH)) return splitPane($, e, { top: below, apps: drawn })
+    const { Box } = $.ui.resolve(e)
 
-    return drawn ? splitPane($, e, { top: git, apps: drawn }) : git
+    return <Box key={APPS_SECTION} flexDirection="column">{drawn}</Box>
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {

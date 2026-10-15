@@ -1,4 +1,6 @@
 import { expect, test } from 'claude-code/testing'
+import type { RenderElement } from 'claude-code'
+import type { TestBody } from 'claude-code/testing'
 
 const GIT: Record<string, string> = {
   'rev-parse --abbrev-ref HEAD': 'feat\n',
@@ -39,6 +41,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
       return { value: result }
     })
     on('ui.open', async () => ({ value: { isPlaced: true as const } }))
+  on('ui.render', async ($, e) => h($.ui.resolve(e).Text, {}, 'engine pane') as RenderElement)
 
     await $.command.run({ command: 'branch-status', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: true, columns: 160 } })
     const ui = await $.ui.mount({ plugin: 'branch-status', surface, component: 'Pane', requestId: 'branch-status', props: PANE_PROPS })
@@ -63,6 +66,7 @@ test('a branch deleted on origin after its merge says so, with what to do', asyn
     return { value: { exitCode: stdout === undefined ? 1 : 0, stdout: stdout ?? '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
   on('ui.open', async () => ({ value: { isPlaced: true as const } }))
+  on('ui.render', async ($, e) => h($.ui.resolve(e).Text, {}, 'engine pane') as RenderElement)
 
   await $.command.run({ command: 'branch-status', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: true, columns: 160 } })
   const ui = await $.ui.mount({ plugin: 'branch-status', surface: 'terminal', component: 'Pane', requestId: 'branch-status', props: PANE_PROPS })
@@ -70,4 +74,36 @@ test('a branch deleted on origin after its merge says so, with what to do', asyn
   expect(await ui.find({ text: 'merged into develop' })).toBeDefined()
   expect(await ui.find({ text: 'switch to develop and pull' })).toBeDefined()
   expect(await ui.find({ text: 'feat: search box' })).toBeUndefined()
+})
+
+type Engine = Parameters<TestBody>[0]
+type On = Parameters<TestBody>[1]
+type Below = { text: string; key?: string }
+
+async function mountWithBelow($: Engine, on: On, below: Below) {
+  on('process.run', async (_, e) => {
+    const stdout = GIT[e.argv.slice(1).join(' ')]
+    return { value: { exitCode: stdout === undefined ? 1 : 0, stdout: stdout ?? '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+  })
+  on('ui.open', async () => ({ value: { isPlaced: true as const } }))
+  on('ui.render', async ($, e) => {
+    const { Box, Text } = $.ui.resolve(e)
+    return h(Box, { key: below.key }, h(Text, {}, below.text)) as RenderElement
+  })
+  await $.command.run({ command: 'branch-status', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: true, columns: 160 } })
+  return $.ui.mount({ plugin: 'branch-status', surface: 'terminal', component: 'Pane', requestId: 'branch-status', props: PANE_PROPS })
+}
+
+test('the apps section drawn below goes under the graph', async ($, on) => {
+  const ui = await mountWithBelow($, on, { text: 'Apps shop', key: 'dev-apps' })
+
+  expect(await ui.find({ text: '2 commits' })).toBeDefined()
+  expect(await ui.find({ text: 'Apps shop' })).toBeDefined()
+})
+
+test('without the apps section, only the graph is drawn', async ($, on) => {
+  const ui = await mountWithBelow($, on, { text: 'engine pane' })
+
+  expect(await ui.find({ text: '2 commits' })).toBeDefined()
+  expect(await ui.find({ text: 'engine pane' })).toBeUndefined()
 })
