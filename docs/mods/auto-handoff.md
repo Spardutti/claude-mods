@@ -33,8 +33,9 @@ until the session is already struggling.
 
 - No `/handoff` command installed? It runs a normal `/compact` instead. Same if the handoff
   skill decides there's nothing worth writing down.
-- Background work still running (a test run, a build)? It waits for it to finish, asks
-  Claude to add the results to the handoff, and only then clears.
+- A subagent or workflow still running? It waits for it to finish, asks Claude to add
+  the results to the handoff, and only then clears. Background shells (a dev server),
+  monitors and watched artifacts don't hold it back, since they can run for good.
 - It only resumes from a handoff written during this handoff. If Claude names an older
   file, it runs `/compact` instead.
 - A fresh session that starts near the threshold won't hand off again right away. It

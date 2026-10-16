@@ -13,7 +13,7 @@ export type Engine = Parameters<TestBody>[0]
 type On = Parameters<TestBody>[1]
 type Fake = { percent: number; commands: string[]; handoffAgeMs?: number }
 export type Seen = { ran: string[]; prompts: string[]; wait: (ms: number) => Promise<void> }
-type TurnFields = { answer?: string; reason?: 'answer' | 'aborted'; agentId?: string; backgroundTasks?: number }
+type TurnFields = { answer?: string; reason?: 'answer' | 'aborted'; agentId?: string; backgroundTasks?: string[] }
 
 export function fakeSession(on: On, fake: Fake): Seen {
   const clock = mock.clock(on, { now: 1_000_000 })
@@ -36,8 +36,7 @@ export function fakeSession(on: On, fake: Fake): Seen {
   return seen
 }
 
-const runningTasks = (count: number) =>
-  Array.from({ length: count }, (_, i) => ({ id: `task-${i}`, type: 'shell', status: 'running', description: 'npm test' }))
+const runningTasks = (types: string[]) => types.map((type, i) => ({ id: `task-${i}`, type, status: 'running', description: type }))
 
 let turns = 0
 export async function endTurn($: Engine, fields: TurnFields = {}) {
@@ -45,7 +44,7 @@ export async function endTurn($: Engine, fields: TurnFields = {}) {
   const reason = fields.reason ?? 'answer'
   const answer = fields.answer ?? 'ok'
   if (reason === 'answer' && !fields.agentId) {
-    const background_tasks = runningTasks(fields.backgroundTasks ?? 0)
+    const background_tasks = runningTasks(fields.backgroundTasks ?? [])
     await $.classic.Stop({ session_id: 's', transcript_path: '', cwd: '', stop_hook_active: false, last_assistant_message: answer, background_tasks })
   }
   await $.turn.complete({ answer, durationMs: 1, isAborted: reason === 'aborted', turnId: `t${turns}`, reason, agentId: fields.agentId })
