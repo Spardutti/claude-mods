@@ -17,6 +17,8 @@ const APPS_SECTION = 'dev-apps'
 const PANE = 'dev-apps'
 const POLL_MS = 3_000
 const project = atom({ plugin: 'dev-apps', key: 'project' } as const, null as Project | null)
+// Module state survives a /clear, which drops $.state and fires no session.start.
+let loaded: Project | null = null
 
 async function output($: EngineInterface, argv: string[], cwd?: string) {
   const { exitCode, stdout } = await $.process.run(argv, { cwd }).catch(() => ({ exitCode: 1, stdout: '' }))
@@ -46,6 +48,7 @@ async function load($: EngineInterface, cwd: string): Promise<Project | null> {
 }
 
 async function poll($: EngineInterface) {
+  if (loaded && !(await read($, project))) await update($, project, () => loaded)
   const shown = await read($, project)
   if (!shown) return
   void $.process.run(checkIn(shown.name, await $.session.id())).catch(() => undefined)
@@ -93,6 +96,7 @@ async function apps($: EngineInterface, e: PaneInput) {
 async function startSession($: EngineInterface, cwd: string) {
   await $.command.register({ name: 'apps', description: "Open, start and stop this project's browser apps" })
   void load($, cwd).then(async found => {
+    loaded = found
     await update($, project, () => found)
     await poll($)
   })

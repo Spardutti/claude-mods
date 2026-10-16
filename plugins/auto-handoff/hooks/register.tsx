@@ -10,6 +10,8 @@ type BandInput = { [S in RenderSurface]: RenderInputOf<'AbovePrompt', S> }[Rende
 const WARN_POINTS = 5
 const COUNTDOWN_SECONDS = 10
 const LOOP_MARGIN = 10
+// Shells, monitors and artifact watches can run for good (a dev server), so only these hold a handoff.
+const WAITED_FOR = ['subagent', 'workflow']
 const notice = atom({ plugin: 'auto-handoff', key: 'notice' } as const, null as Notice | null)
 
 // Module state, not $.state: it must survive /clear, which keeps this module loaded.
@@ -148,7 +150,7 @@ export const register: Register = (on, options) => {
 
   // Only Stop lists running background tasks, and it ends before turn.complete, which acts on them.
   on('classic.Stop', async ($, e, next) => {
-    hasBackgroundWork = (e.background_tasks?.length ?? 0) > 0
+    hasBackgroundWork = (e.background_tasks ?? []).some(task => WAITED_FOR.includes(task.type))
     return next(e)
   })
 

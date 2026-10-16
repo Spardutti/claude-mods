@@ -6,7 +6,7 @@ import type { Engine, Seen } from './fake-session'
 const FOLD_IN = `The background work finished. Add its results to ${PATH}, then reply with that path.`
 const RESUMED = ['handoff', 'clear', 'rename Fix the login redirect']
 
-async function handOff($: Engine, seen: Seen, backgroundTasks = 0) {
+async function handOff($: Engine, seen: Seen, backgroundTasks: string[] = []) {
   await endTurn($)
   await seen.wait(COUNTDOWN_MS)
   await endTurn($, { answer: WRITTEN, backgroundTasks })
@@ -15,14 +15,14 @@ async function handOff($: Engine, seen: Seen, backgroundTasks = 0) {
 test('while background work runs, the session is not cleared', async ($, on) => {
   const seen = fakeSession(on, { percent: 61, commands: ['handoff'] })
 
-  await handOff($, seen, 1)
+  await handOff($, seen, ['subagent'])
 
   expect([seen.ran, seen.prompts]).toEqual([['handoff'], []])
 })
 
 test('once background work ends, Claude is asked to add its results to the handoff', async ($, on) => {
   const seen = fakeSession(on, { percent: 61, commands: ['handoff'] })
-  await handOff($, seen, 1)
+  await handOff($, seen, ['subagent'])
 
   await endTurn($, { answer: 'The tests passed.' })
 
@@ -31,12 +31,30 @@ test('once background work ends, Claude is asked to add its results to the hando
 
 test('after the results are added, the fresh session resumes', async ($, on) => {
   const seen = fakeSession(on, { percent: 61, commands: ['handoff'] })
-  await handOff($, seen, 1)
+  await handOff($, seen, ['subagent'])
   await endTurn($, { answer: 'The tests passed.' })
 
   await endTurn($, { answer: WRITTEN })
 
   expect(seen.ran).toEqual(RESUMED)
+})
+
+for (const kind of ['shell', 'monitor', 'artifact watch']) {
+  test(`a running ${kind} does not hold the handoff back`, async ($, on) => {
+    const seen = fakeSession(on, { percent: 61, commands: ['handoff'] })
+
+    await handOff($, seen, [kind])
+
+    expect(seen.ran).toEqual(RESUMED)
+  })
+}
+
+test('a running workflow holds the handoff back', async ($, on) => {
+  const seen = fakeSession(on, { percent: 61, commands: ['handoff'] })
+
+  await handOff($, seen, ['workflow'])
+
+  expect([seen.ran, seen.prompts]).toEqual([['handoff'], []])
 })
 
 test('a handoff file older than this handoff is refused, and the session compacts', async ($, on) => {
