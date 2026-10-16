@@ -4,7 +4,7 @@ import type { TestBody } from 'claude-code/testing'
 
 type Engine = Parameters<TestBody>[0]
 type On = Parameters<TestBody>[1]
-type Machine = { listening: number[]; files: Record<string, string>; ran: string[][]; isOtherSessionOpen?: boolean; isGitBelow: boolean }
+type Machine = { now: number; listening: number[]; files: Record<string, string>; ran: string[][]; isOtherSessionOpen?: boolean; isGitBelow: boolean }
 
 // The test runtime has timers; the mod's type roots leave them out.
 declare function setTimeout(run: () => void, ms: number): unknown
@@ -22,13 +22,13 @@ function stdoutFor(argv: readonly string[], cwd: string, machine: Machine) {
 }
 
 function fakeMachine(on: On, files: Record<string, string> = { 'docker-compose.yml': COMPOSE, '.env': 'WEB_PORT=4321\n' }): Machine {
-  const machine: Machine = { listening: [], files, ran: [], isGitBelow: true }
+  const machine: Machine = { now: 1_000, listening: [], files, ran: [], isGitBelow: true }
   on('session.start', async (_, e) => ({ cwd: e.cwd }))
   on('session.end', async (_, e) => ({ sessionId: e.sessionId }))
   on('session.id', async () => ({ value: 'session-1' }))
   on('command.register', async (_, e) => ({ value: { command: e.name } }))
   on('clock.every', () => new Promise(() => {}))
-  on('clock.now', async () => ({ value: 1_000 }))
+  on('clock.now', async () => ({ value: machine.now }))
   on('ui.open', async () => ({ value: { isPlaced: true as const } }))
   on('ui.render', async ($, e) => {
     const { Box, Text } = $.ui.resolve(e)
@@ -97,6 +97,20 @@ test('start runs docker compose up in the project folder and shows starting', as
 
   expect(composeRuns(machine)).toEqual(['docker compose up -d'])
   expect(await ui.find({ text: /web starting/ })).toBeDefined()
+})
+
+test('a start that failed offers Start again', async ($, on) => {
+  const machine = fakeMachine(on)
+  await open($)
+  const pressed = await mountGit($)
+  await pressed.press({ key: 'start' })
+  await settle()
+  await pressed.unmount()
+
+  machine.now += 91_000
+  const ui = await mountGit($)
+
+  expect([await ui.find({ text: /web failed/ }), await ui.find({ key: 'start' })].map(Boolean)).toEqual([true, true])
 })
 
 test('stop runs docker compose down', async ($, on) => {
