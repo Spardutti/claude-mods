@@ -14,17 +14,19 @@ const detached = (script: string, ...args: string[]) => ['setsid', '-f', 'sh', '
 
 const compose = (verb: string) => `exec >> ${CACHE}/docker.log 2>&1 < /dev/null && exec docker compose ${verb}`
 
+const composeWatch = `exec >> ${CACHE}/docker.log 2>&1 < /dev/null && echo $$ > ${CACHE}/watch.pid && exec docker compose watch`
+
 const npmRun = `exec > ${CACHE}/"$2".log 2>&1 < /dev/null && echo $$ > ${CACHE}/"$2".pid && exec "$3" run "$2"`
 
 const KILL_STARTED = `for f in ${CACHE}/*.pid; do [ -f "$f" ] && kill -TERM "-$(cat "$f")" 2>/dev/null; rm -f "$f"; done`
 
 export function startCommands(project: string, launcher: Launcher): string[][] {
-  if (launcher.kind === 'docker') return [detached(compose('up -d'), project)]
+  if (launcher.kind === 'docker') return [detached(launcher.watch ? composeWatch : compose('up -d'), project)]
   return launcher.scripts.map(script => detached(npmRun, project, script, launcher.manager))
 }
 
 export function stopCommand(project: string, launcher: Launcher): string[] {
-  if (launcher.kind === 'docker') return detached(compose('down'), project)
+  if (launcher.kind === 'docker') return detached(`${KILL_STARTED}; ${compose('down')}`, project)
   return ['sh', '-c', KILL_STARTED, 'sh', project]
 }
 

@@ -59,7 +59,12 @@ for (const { files, manager } of LOCKS) {
 
 test('a compose file that maps an app port wins over package.json', () => {
   const sources = { compose: '- "3333:3333"', pkg: JSON.stringify({ scripts: { dev: 'next dev -p 3333' } }), files: [] }
-  expect(launcherFor(sources, [3333])).toEqual({ kind: 'docker' })
+  expect(launcherFor(sources, [3333])).toEqual({ kind: 'docker', watch: false })
+})
+
+test('a compose file with develop.watch starts with watch', () => {
+  const compose = '    ports:\n      - "3333:3333"\n    develop:\n      watch:\n        - action: sync\n'
+  expect(launcherFor({ compose, files: [] }, [3333])).toEqual({ kind: 'docker', watch: true })
 })
 
 test('without a matching compose port, the package.json script is used', () => {
