@@ -25,8 +25,9 @@ You end up hunting through terminals to find the URL, or to stop a stack you for
    ```
 
 3. **Click the address** to open the app in your browser.
-4. **Start** runs `docker compose up -d`, or your dev script (`npm`, `pnpm`, `bun` or `yarn`, picked from the lock file).
-   **Stop** runs `docker compose down`, or stops the dev script.
+4. **Start** runs `docker compose watch` when the compose file has a `develop: watch:` section, else `docker compose up -d`.
+   With no compose file, it runs your dev script (`npm`, `pnpm`, `bun` or `yarn`, picked from the lock file).
+   **Stop** ends the watch and runs `docker compose down`, or stops the dev script.
 5. **When you close the last Claude session for the project**, it stops everything that project runs.
 
 ## Good to know

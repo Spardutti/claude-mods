@@ -34,11 +34,13 @@ export function scriptsFor(pkg: string, ports: number[]): string[] {
     .filter(name => name !== undefined)
 }
 
+const WATCH = /^\s*develop:\s*\n\s*watch:/m
+
 export const managerOf = (files: string[]) => LOCKS.find(([lock]) => files.includes(lock))?.[1] ?? 'npm'
 
 export function launcherFor(sources: Sources, ports: number[]): Launcher | undefined {
   const { compose, env, pkg, files } = sources
-  if (compose && composePorts(compose, envOf(env)).some(port => ports.includes(port))) return { kind: 'docker' }
+  if (compose && composePorts(compose, envOf(env)).some(port => ports.includes(port))) return { kind: 'docker', watch: WATCH.test(compose) }
   const scripts = pkg ? [...new Set(scriptsFor(pkg, ports))] : []
   return scripts.length ? { kind: 'node', manager: managerOf(files), scripts } : undefined
 }

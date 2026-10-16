@@ -1,6 +1,6 @@
 export type Entry = { service: string; port: number }
 
-export type Launcher = { kind: 'docker' } | { kind: 'node'; manager: string; scripts: string[] }
+export type Launcher = { kind: 'docker'; watch: boolean } | { kind: 'node'; manager: string; scripts: string[] }
 
 export type Project = {
   name: string
