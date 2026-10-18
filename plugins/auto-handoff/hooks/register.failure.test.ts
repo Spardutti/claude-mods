@@ -89,4 +89,3 @@ test('once the context drops below the threshold, the failure band goes away', a
 
   expect(await (await band($)).find({ text: /Handoff failed/ })).toBeUndefined()
 })
-

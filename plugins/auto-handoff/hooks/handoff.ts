@@ -4,9 +4,9 @@ export function handoffPath(answer: string): string | undefined {
   return answer.match(/\.claude\/handoffs\/[\w-][\w.-]*\.md\b/)?.[0]
 }
 
-export function resumePrompt(path: string, replies: string[], running: string[]): string {
+export function resumePrompt(path: string, lastReply: string, running: string[]): string {
   const parts = [`Read ${path} and continue.`]
-  const said = replies.join('\n\n').trim()
+  const said = lastReply.trim()
   if (said) {
     parts.push(`The reset hid your last reply, below. Repeat to the user anything in it beyond the handoff path.\n\n${said}`)
   }

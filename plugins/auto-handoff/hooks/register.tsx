@@ -23,7 +23,6 @@ let floor = 0
 let floorPending = false
 let hasBackgroundWork = false
 let running: string[] = []
-let replies: string[] = []
 let retried = false
 let failed: string | undefined
 
@@ -52,7 +51,6 @@ async function start($: EngineInterface, percent: number) {
   if (!command) return fail($, 'no /handoff command found')
   $.ui.toast(`Context at ${percent}%. Handing off to a fresh session.`)
   phase = 'writing'
-  replies = []
   retried = false
   startedAt = await $.clock.now()
   await $.command.run({ command })
@@ -77,14 +75,16 @@ async function writtenHandoff($: EngineInterface, answer: string) {
   return stat && stat.mtimeMs >= startedAt ? path : undefined
 }
 
-async function resumeFresh($: EngineInterface, path: string) {
+async function resumeFresh($: EngineInterface, path: string, lastReply: string) {
   phase = 'busy'
   try {
     const name = sessionName(path, await $.fs.read(path))
     await $.command.run({ command: 'clear' })
     await $.command.run({ command: 'rename', args: name })
     floorPending = true
-    await $.prompt.submit({ text: resumePrompt(path, replies, running), asUser: true })
+    await $.prompt.submit({ text: resumePrompt(path, lastReply, running), asUser: true })
+  } catch {
+    await fail($, 'the fresh session could not start')
   } finally {
     phase = 'idle'
   }
@@ -103,11 +103,10 @@ async function askAgain($: EngineInterface) {
 }
 
 async function finishHandoff($: EngineInterface, answer: string, hasBackgroundWork: boolean) {
-  replies.push(answer)
   if (phase === 'waiting') return hasBackgroundWork ? undefined : askToFoldIn($)
   const path = await writtenHandoff($, answer)
   if (!path) return retried ? fail($, 'no handoff note was written') : askAgain($)
-  if (!hasBackgroundWork) return resumeFresh($, path)
+  if (!hasBackgroundWork) return resumeFresh($, path, answer)
   phase = 'waiting'
   waitingPath = path
 }
@@ -164,7 +163,7 @@ export const register: Register = (on, options) => {
   on('classic.Stop', async ($, e, next) => {
     const tasks = e.background_tasks ?? []
     hasBackgroundWork = tasks.some(task => WAITED_FOR.includes(task.type))
-    running = tasks.filter(task => !WAITED_FOR.includes(task.type)).map(task => task.description)
+    running = tasks.filter(task => task.status === 'running' && !WAITED_FOR.includes(task.type)).map(task => task.description)
     return next(e)
   })
 

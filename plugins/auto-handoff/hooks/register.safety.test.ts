@@ -4,6 +4,7 @@ import { COUNTDOWN_MS, endTurn, fakeSession, PATH, WRITTEN } from './fake-sessio
 import type { Engine, Seen } from './fake-session'
 
 const FOLD_IN = `The background work finished. Add its results to ${PATH}, then reply with that path.`
+const ASK_AGAIN = 'No new handoff note turned up. Write it under .claude/handoffs/ now, then reply with its path.'
 const RESUMED = ['handoff', 'clear', 'rename Fix the login redirect']
 
 async function handOff($: Engine, seen: Seen, backgroundTasks: string[] = []) {
@@ -70,7 +71,7 @@ test('a handoff file older than this handoff is refused, and the session is not 
 
   await handOff($, seen)
 
-  expect(seen.ran).toEqual(['handoff'])
+  expect([seen.ran, seen.prompts]).toEqual([['handoff'], [ASK_AGAIN]])
 })
 
 test('a fresh session that starts above the threshold does not hand off again', async ($, on) => {
