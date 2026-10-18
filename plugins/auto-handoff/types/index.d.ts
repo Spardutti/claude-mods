@@ -1,4 +1,4 @@
-export type Notice = { percent: number; threshold: number; secondsLeft?: number }
+export type Notice = { percent: number; threshold: number; secondsLeft?: number } | { failed: string }
 
 declare module 'claude-code' {
   interface PluginState {

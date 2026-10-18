@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderInputOf, RenderSurface, Timer } from 'claude-code'
 
 import type { Notice } from '../types'
-import { handoffPath, sessionName } from './handoff'
+import { handoffPath, resumePrompt, sessionName } from './handoff'
 
 type Phase = 'idle' | 'writing' | 'waiting' | 'busy'
 type BandInput = { [S in RenderSurface]: RenderInputOf<'AbovePrompt', S> }[RenderSurface]
@@ -22,6 +22,10 @@ let waitingPath = ''
 let floor = 0
 let floorPending = false
 let hasBackgroundWork = false
+let running: string[] = []
+let replies: string[] = []
+let retried = false
+let failed: string | undefined
 
 const show = ($: EngineInterface, next: Notice | null) => update($, notice, () => next)
 
@@ -37,23 +41,19 @@ async function findHandoffCommand($: EngineInterface) {
   return commands.find(c => c.name === 'handoff' || c.name.endsWith(':handoff'))?.name
 }
 
-async function compact($: EngineInterface) {
-  phase = 'busy'
-  try {
-    await $.command.run({ command: 'compact' })
-  } finally {
-    phase = 'idle'
-  }
+async function fail($: EngineInterface, reason: string) {
+  phase = 'idle'
+  failed = reason
+  await show($, { failed: reason })
 }
 
 async function start($: EngineInterface, percent: number) {
   const command = await findHandoffCommand($)
-  if (!command) {
-    $.ui.toast(`Context at ${percent}%. Compacting.`)
-    return compact($)
-  }
+  if (!command) return fail($, 'no /handoff command found')
   $.ui.toast(`Context at ${percent}%. Handing off to a fresh session.`)
   phase = 'writing'
+  replies = []
+  retried = false
   startedAt = await $.clock.now()
   await $.command.run({ command })
 }
@@ -84,7 +84,7 @@ async function resumeFresh($: EngineInterface, path: string) {
     await $.command.run({ command: 'clear' })
     await $.command.run({ command: 'rename', args: name })
     floorPending = true
-    await $.prompt.submit({ text: `Read ${path} and continue.`, asUser: true })
+    await $.prompt.submit({ text: resumePrompt(path, replies, running), asUser: true })
   } finally {
     phase = 'idle'
   }
@@ -96,10 +96,17 @@ async function askToFoldIn($: EngineInterface) {
   await $.prompt.submit({ text, asUser: true })
 }
 
+async function askAgain($: EngineInterface) {
+  retried = true
+  const text = 'No new handoff note turned up. Write it under .claude/handoffs/ now, then reply with its path.'
+  await $.prompt.submit({ text, asUser: true })
+}
+
 async function finishHandoff($: EngineInterface, answer: string, hasBackgroundWork: boolean) {
+  replies.push(answer)
   if (phase === 'waiting') return hasBackgroundWork ? undefined : askToFoldIn($)
   const path = await writtenHandoff($, answer)
-  if (!path) return compact($)
+  if (!path) return retried ? fail($, 'no handoff note was written') : askAgain($)
   if (!hasBackgroundWork) return resumeFresh($, path)
   phase = 'waiting'
   waitingPath = path
@@ -109,6 +116,9 @@ async function drawNotice($: EngineInterface, e: BandInput) {
   const shown = await read($, notice)
   if (e.props.hasSurvey || !shown) return undefined
   const { Box, Button, Text } = $.ui.resolve(e)
+  if ('failed' in shown) {
+    return <Text color="red">Handoff failed: {shown.failed}. Nothing was cleared. Run /handoff yourself.</Text>
+  }
   if (shown.secondsLeft === undefined) {
     return <Text color="yellow">Context at {shown.percent}%. Handoff starts at {shown.threshold}%.</Text>
   }
@@ -126,6 +136,8 @@ async function checkUsage($: EngineInterface, threshold: number) {
   else if (percent < floor - LOOP_MARGIN) floor = 0
   floorPending = false
   const at = Math.max(threshold, floor)
+  if (percent < at) failed = undefined
+  if (failed) return show($, { failed })
   if (percent >= at) return countDown($, percent, at)
   await show($, percent >= at - WARN_POINTS ? { percent, threshold: at } : null)
 }
@@ -150,7 +162,9 @@ export const register: Register = (on, options) => {
 
   // Only Stop lists running background tasks, and it ends before turn.complete, which acts on them.
   on('classic.Stop', async ($, e, next) => {
-    hasBackgroundWork = (e.background_tasks ?? []).some(task => WAITED_FOR.includes(task.type))
+    const tasks = e.background_tasks ?? []
+    hasBackgroundWork = tasks.some(task => WAITED_FOR.includes(task.type))
+    running = tasks.filter(task => !WAITED_FOR.includes(task.type)).map(task => task.description)
     return next(e)
   })
 

@@ -1,7 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { COUNTDOWN_MS, endTurn, fakeSession, PATH, WRITTEN } from './fake-session'
-import type { Engine } from './fake-session'
+import { band, COUNTDOWN_MS, endTurn, fakeSession, WRITTEN } from './fake-session'
 
 test('above the threshold, the handoff is written, then a fresh named session resumes from it', async ($, on) => {
   const seen = fakeSession(on, { percent: 61, commands: ['handoff'] })
@@ -11,7 +10,18 @@ test('above the threshold, the handoff is written, then a fresh named session re
   await endTurn($, { answer: WRITTEN })
 
   expect(seen.ran).toEqual(['handoff', 'clear', 'rename Fix the login redirect'])
-  expect(seen.prompts).toEqual([`Read ${PATH} and continue.`])
+  expect(seen.prompts.length).toBe(1)
+  expect(seen.prompts[0]).toMatch(/^Read \.claude\/handoffs\/2026-10-04-fix-login\.md and continue\./)
+})
+
+test('the fresh session gets the reply the reset hid', async ($, on) => {
+  const seen = fakeSession(on, { percent: 61, commands: ['handoff'] })
+
+  await endTurn($)
+  await seen.wait(COUNTDOWN_MS)
+  await endTurn($, { answer: `Go test: click Godot.\n\n${WRITTEN}` })
+
+  expect(seen.prompts[0]).toMatch(/hid your last reply, below[^]*Go test: click Godot\./)
 })
 
 test('exactly at the threshold, the handoff starts', async ($, on) => {
@@ -38,25 +48,6 @@ test('a raised threshold setting holds the handoff back', { options: { threshold
   await seen.wait(COUNTDOWN_MS)
 
   expect(seen.ran).toEqual([])
-})
-
-test('without a handoff command, the session compacts', async ($, on) => {
-  const seen = fakeSession(on, { percent: 61, commands: ['review'] })
-
-  await endTurn($)
-  await seen.wait(COUNTDOWN_MS)
-
-  expect(seen.ran).toEqual(['compact'])
-})
-
-test('when the handoff skill writes no file, the session compacts instead of clearing', async ($, on) => {
-  const seen = fakeSession(on, { percent: 61, commands: ['handoff'] })
-
-  await endTurn($)
-  await seen.wait(COUNTDOWN_MS)
-  await endTurn($, { answer: "I didn't write a handoff file." })
-
-  expect(seen.ran).toEqual(['handoff', 'compact'])
 })
 
 for (const [name, fields] of [
@@ -92,10 +83,6 @@ test('the handoff waits out the countdown before it starts', async ($, on) => {
 
   expect(seen.ran).toEqual([])
 })
-
-const BAND_PROPS = { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 100, scroll: { offset: 0, bodyRows: 4 }, view: {} } as const
-const band = ($: Engine, surface: 'terminal' | 'desktop' = 'terminal') =>
-  $.ui.mount({ plugin: 'auto-handoff', surface, component: 'AbovePrompt', props: BAND_PROPS })
 
 for (const surface of ['terminal', 'desktop'] as const) {
   test(`the band counts down the seconds left on ${surface}`, async ($, on) => {

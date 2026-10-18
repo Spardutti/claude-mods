@@ -36,7 +36,7 @@ export function fakeSession(on: On, fake: Fake): Seen {
   return seen
 }
 
-const runningTasks = (types: string[]) => types.map((type, i) => ({ id: `task-${i}`, type, status: 'running', description: type }))
+const runningTasks = (types: string[]) => types.map((type, i) => ({ id: `task-${i}`, type, status: 'running', description: `Launch the ${type}` }))
 
 let turns = 0
 export async function endTurn($: Engine, fields: TurnFields = {}) {
@@ -50,3 +50,7 @@ export async function endTurn($: Engine, fields: TurnFields = {}) {
   await $.turn.complete({ answer, durationMs: 1, isAborted: reason === 'aborted', turnId: `t${turns}`, reason, agentId: fields.agentId })
   await new Promise<void>(resolve => setTimeout(resolve, 0))
 }
+
+const BAND_PROPS = { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 100, scroll: { offset: 0, bodyRows: 4 }, view: {} } as const
+export const band = ($: Engine, surface: 'terminal' | 'desktop' = 'terminal') =>
+  $.ui.mount({ plugin: 'auto-handoff', surface, component: 'AbovePrompt', props: BAND_PROPS })
