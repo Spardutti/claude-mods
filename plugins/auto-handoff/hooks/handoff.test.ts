@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { handoffPath, sessionName } from './handoff'
+import { handoffPath, resumePrompt, sessionName } from './handoff'
 
 const PATH = '.claude/handoffs/2026-10-04-fix-login.md'
 
@@ -26,6 +26,26 @@ test('an answer without a written handoff gives no path', () => {
 test('a path outside .claude/handoffs is refused', () => {
   expect(handoffPath('Handoff written: ../../etc/secrets.md')).toBeUndefined()
   expect(handoffPath('Handoff written: .claude/handoffs/../../x.md')).toBeUndefined()
+})
+
+test('with no reply and nothing running, the resume prompt only names the note', () => {
+  expect(resumePrompt(PATH, '', [])).toBe(`Read ${PATH} and continue.`)
+})
+
+test('the resume prompt carries the reply the reset hid', () => {
+  expect(resumePrompt(PATH, `Go test the room.\n\nHandoff written: ${PATH}`, [])).toBe(
+    `Read ${PATH} and continue.\n\n` +
+      'The reset hid your last reply, below. Repeat to the user anything in it beyond the handoff path.\n\n' +
+      `Go test the room.\n\nHandoff written: ${PATH}`,
+  )
+})
+
+test('the resume prompt lists background tasks that may still report back', () => {
+  expect(resumePrompt(PATH, '', ['Launch the game', 'Watch the logs'])).toBe(
+    `Read ${PATH} and continue.\n\n` +
+      "These background tasks started before the reset. When one reports back, that is not the user's answer:\n" +
+      '- Launch the game\n- Watch the logs',
+  )
 })
 
 test('the session is named after the handoff subject', () => {

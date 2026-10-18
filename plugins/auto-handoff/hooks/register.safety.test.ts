@@ -4,6 +4,7 @@ import { COUNTDOWN_MS, endTurn, fakeSession, PATH, WRITTEN } from './fake-sessio
 import type { Engine, Seen } from './fake-session'
 
 const FOLD_IN = `The background work finished. Add its results to ${PATH}, then reply with that path.`
+const ASK_AGAIN = 'No new handoff note turned up. Write it under .claude/handoffs/ now, then reply with its path.'
 const RESUMED = ['handoff', 'clear', 'rename Fix the login redirect']
 
 async function handOff($: Engine, seen: Seen, backgroundTasks: string[] = []) {
@@ -49,6 +50,14 @@ for (const kind of ['shell', 'monitor', 'artifact watch']) {
   })
 }
 
+test('the fresh session is told which background tasks may still report back', async ($, on) => {
+  const seen = fakeSession(on, { percent: 61, commands: ['handoff'] })
+
+  await handOff($, seen, ['shell'])
+
+  expect(seen.prompts[0]).toMatch(/not the user's answer:\n- Launch the shell$/)
+})
+
 test('a running workflow holds the handoff back', async ($, on) => {
   const seen = fakeSession(on, { percent: 61, commands: ['handoff'] })
 
@@ -57,12 +66,12 @@ test('a running workflow holds the handoff back', async ($, on) => {
   expect([seen.ran, seen.prompts]).toEqual([['handoff'], []])
 })
 
-test('a handoff file older than this handoff is refused, and the session compacts', async ($, on) => {
+test('a handoff file older than this handoff is refused, and the session is not cleared', async ($, on) => {
   const seen = fakeSession(on, { percent: 61, commands: ['handoff'], handoffAgeMs: 60_000 })
 
   await handOff($, seen)
 
-  expect(seen.ran).toEqual(['handoff', 'compact'])
+  expect([seen.ran, seen.prompts]).toEqual([['handoff'], [ASK_AGAIN]])
 })
 
 test('a fresh session that starts above the threshold does not hand off again', async ($, on) => {
