@@ -78,6 +78,8 @@ test('a branch deleted on origin after its merge says so, with what to do', asyn
 
 type Engine = Parameters<TestBody>[0]
 type On = Parameters<TestBody>[1]
+// The test runtime has timers; the mod's type roots leave them out.
+declare function setTimeout(run: () => void, ms: number): unknown
 type Below = { text: string; key?: string }
 
 async function mountWithBelow($: Engine, on: On, below: Below) {
@@ -106,4 +108,27 @@ test('without the apps section, only the graph is drawn', async ($, on) => {
 
   expect(await ui.find({ text: '2 commits' })).toBeDefined()
   expect(await ui.find({ text: 'engine pane' })).toBeUndefined()
+})
+
+// A /resume or /clear inside Claude drops the session's state, and no session.start follows.
+test('after the session state drops, the pane reads git again instead of saying main is missing', async ($, on) => {
+  let isDropped = false
+  let fresh = { value: undefined as unknown, version: 0 }
+  on('state.get', async (_, e, next) => (isDropped ? { value: fresh } : next(e)))
+  on('state.set', async (_, e, next) => {
+    if (!isDropped) return next(e)
+    fresh = { value: e.value, version: fresh.version + 1 }
+    return { value: { isSet: true as const, version: fresh.version } }
+  })
+  await (await mountWithBelow($, on, { text: 'engine pane' })).unmount()
+
+  isDropped = true
+  const first = await $.ui.mount({ plugin: 'branch-status', surface: 'terminal', component: 'Pane', requestId: 'branch-status', props: PANE_PROPS })
+  expect(await first.find({ text: 'Reading git…' })).toBeDefined()
+  for (let i = 0; i < 20; i++) await new Promise<void>(resolve => setTimeout(resolve, 0))
+  await first.unmount()
+  const ui = await $.ui.mount({ plugin: 'branch-status', surface: 'terminal', component: 'Pane', requestId: 'branch-status', props: PANE_PROPS })
+
+  expect(await ui.find({ text: /No main branch/ })).toBeUndefined()
+  expect(await ui.find({ text: '2 commits' })).toBeDefined()
 })
