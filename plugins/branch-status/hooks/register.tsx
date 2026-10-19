@@ -74,6 +74,11 @@ async function drawGraph($: EngineInterface, e: PaneInput) {
   const { Box, Text } = $.ui.resolve(e)
   const state = await read($, snapshot)
   if (state.error) return <Box key={GIT_GRAPH}><Text dimColor>{state.error}</Text></Box>
+  // An empty snapshot: the session's state dropped (a /resume or /clear), and no session.start follows.
+  if (!state.branch) {
+    void refresh($)
+    return <Box key={GIT_GRAPH}><Text dimColor>Reading git…</Text></Box>
+  }
   if (!state.hasBase) return <Box key={GIT_GRAPH}><Text dimColor>No {BASE} branch here.</Text></Box>
 
   return (
