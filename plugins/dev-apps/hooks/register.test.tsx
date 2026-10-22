@@ -55,6 +55,49 @@ test('a start that failed offers Start again', async ($, on) => {
   expect([await ui.find({ text: /web failed/ }), await ui.find({ key: 'start' })].map(Boolean)).toEqual([true, true])
 })
 
+async function failWith($: Engine, on: On, logError: string) {
+  const machine = fakeMachine(on)
+  machine.logError = logError
+  await open($)
+  const pressed = await mountGit($)
+  await pressed.press({ key: 'start' })
+  await settle()
+  await pressed.unmount()
+  await machine.wait(93_000)
+  await settle()
+  return mountGit($)
+}
+
+test('a failed start shows the last error line from the log', async ($, on) => {
+  const ui = await failWith($, on, ' container shop-db-1 is unhealthy\n')
+
+  expect(await ui.find({ text: 'container shop-db-1 is unhealthy' })).toBeDefined()
+})
+
+test('a long error line is cut to the pane width', async ($, on) => {
+  const ui = await failWith($, on, `Error: ${'x'.repeat(100)}\n`)
+
+  expect(await ui.find({ text: `Error: ${'x'.repeat(43)}` })).toBeDefined()
+})
+
+test('an error line written after the 90s mark still shows', async ($, on) => {
+  const machine = fakeMachine(on)
+  await open($)
+  const pressed = await mountGit($)
+  await pressed.press({ key: 'start' })
+  await settle()
+  await pressed.unmount()
+  await machine.wait(93_000)
+  await settle()
+
+  machine.logError = 'Error: getaddrinfo ENOTFOUND db\n'
+  await machine.wait(3_000)
+  await settle()
+  const ui = await mountGit($)
+
+  expect(await ui.find({ text: 'Error: getaddrinfo ENOTFOUND db' })).toBeDefined()
+})
+
 test('stop runs docker compose down', async ($, on) => {
   const machine = fakeMachine(on)
   machine.listening = [4321, 4322]

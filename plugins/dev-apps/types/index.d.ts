@@ -10,6 +10,7 @@ export type Project = {
   listening: number[]
   startedAt?: number
   stoppingAt?: number
+  failure?: string
 }
 
 declare module 'claude-code' {

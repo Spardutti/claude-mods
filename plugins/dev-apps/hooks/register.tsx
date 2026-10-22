@@ -2,13 +2,13 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Project } from '../types'
-import { LISTENING, READ_REGISTRY, checkIn, checkOut, startCommands, stopCommand } from './commands'
+import { LISTENING, READ_REGISTRY, checkIn, checkOut, lastError, startCommands, stopCommand } from './commands'
 import { COMPOSE_FILES, launcherFor } from './launch'
 import { drawApps, splitPane } from './panel'
 import type { PaneInput } from './panel'
 import { projectName } from './project'
 import { browserApps } from './registry'
-import { listeningPorts } from './running'
+import { listeningPorts, statusOf } from './running'
 
 const GIT_PANE = 'branch-status'
 // Keys the two mods tag their drawings with, so whichever runs first can stack both.
@@ -47,6 +47,12 @@ async function load($: EngineInterface, cwd: string): Promise<Project | null> {
   return { name, root, apps, launcher, listening: [] }
 }
 
+async function noteFailure($: EngineInterface, shown: Project) {
+  if (!shown.launcher || shown.failure !== undefined || statusOf(false, shown, await $.clock.now()) !== 'failed') return
+  const failure = (await output($, lastError(shown.name, shown.launcher)))?.trim()
+  if (failure) await update($, project, now => now && (now.startedAt === shown.startedAt ? { ...now, failure } : now))
+}
+
 async function poll($: EngineInterface) {
   if (loaded && !(await read($, project))) await update($, project, () => loaded)
   const shown = await read($, project)
@@ -61,13 +67,14 @@ async function poll($: EngineInterface) {
     startedAt: isAllUp ? undefined : now.startedAt,
     stoppingAt: isAllDown ? undefined : now.stoppingAt,
   })
+  if (!isAllUp) await noteFailure($, shown)
 }
 
 async function start($: EngineInterface) {
   const shown = await read($, project)
   if (!shown?.launcher) return
   const startedAt = await $.clock.now()
-  await update($, project, now => now && { ...now, startedAt, stoppingAt: undefined })
+  await update($, project, now => now && { ...now, startedAt, stoppingAt: undefined, failure: undefined })
   for (const argv of startCommands(shown.name, shown.launcher)) await $.process.run(argv, { cwd: shown.root })
 }
 
