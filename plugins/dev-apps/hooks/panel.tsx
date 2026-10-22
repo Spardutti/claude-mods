@@ -32,6 +32,7 @@ export function drawApps($: EngineInterface, e: PaneInput, view: View) {
   const { project, now } = view
   const { Box, Link, Text } = $.ui.resolve(e)
   const rows = project.apps.map(app => ({ ...app, status: statusOf(project.listening.includes(app.port), project, now) }))
+  const isFailed = rows.some(row => row.status === 'failed')
   return (
     <Box flexDirection="column">
       <Text bold>Apps <Text dimColor>{project.name}</Text></Text>
@@ -41,7 +42,8 @@ export function drawApps($: EngineInterface, e: PaneInput, view: View) {
           <Text>  <Link href={`http://localhost:${port}`} /></Text>
         </Box>
       ))}
-      {rows.some(row => row.status === 'failed') ? <Text color="red">Didn't start in 90s. Log: {LOG_FOLDER}/{project.name}/</Text> : <Text />}
+      {isFailed ? <Text color="red">Didn't start in 90s. Log: {LOG_FOLDER}/{project.name}/</Text> : <Text />}
+      {isFailed && project.failure ? <Text color="red">{project.failure.slice(0, e.props.bodyColumns)}</Text> : <Text />}
       {controls($, e, view)}
     </Box>
   )

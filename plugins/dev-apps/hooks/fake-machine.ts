@@ -4,7 +4,7 @@ import type { TestBody } from 'claude-code/testing'
 
 export type Engine = Parameters<TestBody>[0]
 type On = Parameters<TestBody>[1]
-export type Machine = { wait: (ms: number) => Promise<void>; listening: number[]; files: Record<string, string>; ran: string[][]; isOtherSessionOpen?: boolean; isGitBelow: boolean }
+export type Machine = { wait: (ms: number) => Promise<void>; listening: number[]; files: Record<string, string>; ran: string[][]; isOtherSessionOpen?: boolean; isGitBelow: boolean; logError?: string }
 
 // The test runtime has timers; the mod's type roots leave them out.
 declare function setTimeout(run: () => void, ms: number): unknown
@@ -18,6 +18,7 @@ function stdoutFor(argv: readonly string[], cwd: string, machine: Machine) {
   if (argv[0] === 'git') return argv.includes('--git-common-dir') ? `${cwd}/.git\n` : `${cwd}\n`
   if (argv[0] === 'ss') return machine.listening.map(port => `LISTEN 0 511 0.0.0.0:${port} 0.0.0.0:*`).join('\n')
   if (argv[2]?.startsWith('cat ')) return REGISTRY
+  if (argv[2]?.includes('grep -aiE')) return machine.logError ?? ''
   return argv[2]?.includes('echo last') && !machine.isOtherSessionOpen ? 'last\n' : ''
 }
 
