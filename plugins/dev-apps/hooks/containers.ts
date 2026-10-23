@@ -7,13 +7,14 @@ const STOP_CODES = [0, 130, 137, 143]
 
 const UP: ServiceState[] = ['running', 'starting', 'unhealthy', 'restarting']
 
-const DOWN: ServiceState[] = ['crashed', 'stopped']
+// A service with no container may be one that is never meant to run, so only a crash counts as down.
+const DOWN: ServiceState[] = ['crashed']
 
-// Compose v2.21+ prints one object per line; older versions print one array.
-function rowsOf(ps: string): Row[] {
-  const text = ps.trim()
+// Compose v2.21+ prints one object per line; older versions print one array on one line.
+function rowsOf(line: string): Row[] {
   try {
-    return text.startsWith('[') ? JSON.parse(text) : text.split('\n').filter(Boolean).map(line => JSON.parse(line))
+    const parsed = JSON.parse(line)
+    return Array.isArray(parsed) ? parsed : [parsed]
   } catch {
     return []
   }
@@ -31,10 +32,11 @@ function stateOf(row: Row | undefined): ServiceState {
 }
 
 export function servicesOf(ps: string, names: string[]): Service[] {
-  const rows = rowsOf(ps).filter(row => !row.Labels?.includes('com.docker.compose.oneoff=True'))
+  const rows = ps.split('\n').filter(line => line.trim()).flatMap(rowsOf).filter(row => !row.Labels?.includes('com.docker.compose.oneoff=True'))
   const all = names.length ? names : [...new Set(rows.map(row => row.Service))]
   return all.map(name => {
-    const row = rows.find(r => r.Service === name)
+    const replicas = rows.filter(r => r.Service === name)
+    const row = replicas.find(r => stateOf(r) === 'crashed') ?? replicas[0]
     const state = stateOf(row)
     return state === 'crashed' ? { name, state, exitCode: row?.ExitCode } : { name, state }
   })

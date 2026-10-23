@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { fakeMachine, mountGit, open, settle } from './fake-machine'
+import { composeRuns, fakeMachine, mountGit, open, settle } from './fake-machine'
 import type { Engine, On } from './fake-machine'
 
 const RUNNING = '{"Service":"web","State":"running"}\n{"Service":"db","State":"running"}\n'
@@ -23,7 +23,7 @@ test('a crashed container with the apps up shows Start next to Stop', async ($, 
   expect(await buttonsWith($, on, { listening: [4321, 4322], ps })).toEqual([true, true])
 })
 
-test('a database left up with no app answering shows Stop', async ($, on) => {
+test('a database left up with no app answering shows Start and Stop', async ($, on) => {
   const ps = '{"Service":"db","State":"running"}\n'
 
   expect(await buttonsWith($, on, { listening: [], ps })).toEqual([true, true])
@@ -68,4 +68,33 @@ test('a container left up after a failed start shows as running', async ($, on) 
   const ui = await mountGit($)
 
   expect([await ui.find({ text: /db running/ }), await ui.find({ text: /web stopped/ })].map(Boolean)).toEqual([true, true])
+})
+
+test('a service with no container yet does not keep Start up while everything else runs', async ($, on) => {
+  expect(await buttonsWith($, on, { listening: [4321, 4322], ps: '{"Service":"web","State":"running"}\n' })).toEqual([false, true])
+})
+
+test('two quick presses of Start launch the stack once', async ($, on) => {
+  const machine = fakeMachine(on)
+  await open($)
+  const ui = await mountGit($)
+
+  await Promise.all([ui.press({ key: 'start' }), ui.press({ key: 'start' })])
+  await settle()
+
+  expect(composeRuns(machine)).toEqual(['docker compose up -d'])
+})
+
+test('a Start that cannot read the compose file keeps the services it knew', async ($, on) => {
+  const machine = fakeMachine(on)
+  await open($)
+  const ui = await mountGit($)
+  machine.isConfigBroken = true
+
+  await ui.press({ key: 'start' })
+  await settle()
+  await machine.wait(3_000)
+  await settle()
+
+  expect(await ui.find({ text: /db stopped/ })).toBeDefined()
 })

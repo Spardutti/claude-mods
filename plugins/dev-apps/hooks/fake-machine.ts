@@ -4,7 +4,7 @@ import type { TestBody } from 'claude-code/testing'
 
 export type Engine = Parameters<TestBody>[0]
 export type On = Parameters<TestBody>[1]
-export type Machine = { wait: (ms: number) => Promise<void>; listening: number[]; files: Record<string, string>; ran: string[][]; isOtherSessionOpen?: boolean; isGitBelow: boolean; logError?: string; ps?: string }
+export type Machine = { wait: (ms: number) => Promise<void>; listening: number[]; files: Record<string, string>; ran: string[][]; isOtherSessionOpen?: boolean; isGitBelow: boolean; logError?: string; ps?: string; isConfigBroken?: boolean }
 
 // The test runtime has timers; the mod's type roots leave them out.
 declare function setTimeout(run: () => void, ms: number): unknown
@@ -40,7 +40,8 @@ export function fakeMachine(on: On, files: Record<string, string> = { 'docker-co
   on('fs.read', async (_, e) => ({ value: machine.files[e.path.slice(ROOT.length + 1)] ?? '' }))
   on('process.run', async (_, e) => {
     machine.ran.push([...e.argv])
-    return { value: { exitCode: 0, stdout: stdoutFor(e.argv, e.init?.cwd ?? ROOT, machine), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+    const exitCode = machine.isConfigBroken && e.argv[2] === 'config' ? 1 : 0
+    return { value: { exitCode, stdout: stdoutFor(e.argv, e.init?.cwd ?? ROOT, machine), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
   return machine
 }

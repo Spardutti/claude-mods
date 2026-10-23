@@ -8,7 +8,7 @@ import { drawApps, splitPane } from './panel'
 import type { PaneInput } from './panel'
 import { projectName } from './project'
 import { browserApps } from './registry'
-import { listeningPorts, statusOf } from './running'
+import { isBusy, listeningPorts, statusOf } from './running'
 import { isAnyUp, serviceNames, servicesOf } from './containers'
 
 const GIT_PANE = 'branch-status'
@@ -79,8 +79,16 @@ async function start($: EngineInterface) {
   const shown = await read($, project)
   if (!shown?.launcher) return
   const startedAt = await $.clock.now()
-  const names = shown.serviceNames && serviceNames(await output($, COMPOSE_SERVICES, shown.root))
-  await update($, project, now => now && { ...now, startedAt, stoppingAt: undefined, failure: undefined, serviceNames: names })
+  let isClaimed = false
+  // update retries the change on a clash, so the claim is decided again on each try.
+  await update($, project, now => {
+    isClaimed = !!now && !isBusy(now, startedAt)
+    if (!now || !isClaimed) return now
+    return { ...now, startedAt, stoppingAt: undefined, failure: undefined }
+  })
+  if (!isClaimed) return
+  const config = shown.serviceNames && (await output($, COMPOSE_SERVICES, shown.root))
+  if (config) await update($, project, now => now && { ...now, serviceNames: serviceNames(config) })
   for (const argv of startCommands(shown.name, shown.launcher)) await $.process.run(argv, { cwd: shown.root })
 }
 

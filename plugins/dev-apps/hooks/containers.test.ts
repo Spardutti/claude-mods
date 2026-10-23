@@ -68,6 +68,16 @@ test('a container that exited cleanly counts as neither up nor down', () => {
   expect([isAnyUp([{ name: 'migrate', state: 'exited' }]), isAnyDown([{ name: 'migrate', state: 'exited' }])]).toEqual([false, false])
 })
 
+test('one crashed replica shows the service crashed', () => {
+  const ps = [row('worker', 'running'), row('worker', 'exited', { ExitCode: 1 })].join('\n')
+
+  expect(servicesOf(ps, ['worker'])).toEqual([{ name: 'worker', state: 'crashed', exitCode: 1 }])
+})
+
+test('a stray line that is not JSON keeps the other containers', () => {
+  expect(servicesOf(['a notice', row('db', 'running')].join('\n'), ['db'])).toEqual([{ name: 'db', state: 'running' }])
+})
+
 test('the service list drops blank lines', () => {
   expect(serviceNames('web\ndb\n\n')).toEqual(['web', 'db'])
 })
