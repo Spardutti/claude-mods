@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import { COMPOSE, composeRuns, end, fakeMachine, mountGit, open, settle } from './fake-machine'
-import type { Engine } from './fake-machine'
+import type { Engine, On } from './fake-machine'
 
 for (const surface of ['terminal', 'desktop'] as const) {
   test(`the git pane keeps the graph on top and lists the browser apps under it on ${surface}`, async ($, on) => {
