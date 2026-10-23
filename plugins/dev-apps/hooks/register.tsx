@@ -2,13 +2,14 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Project } from '../types'
-import { LISTENING, READ_REGISTRY, checkIn, checkOut, lastError, startCommands, stopCommand } from './commands'
+import { COMPOSE_PS, COMPOSE_SERVICES, LISTENING, READ_REGISTRY, checkIn, checkOut, lastError, startCommands, stopCommand } from './commands'
 import { COMPOSE_FILES, launcherFor } from './launch'
 import { drawApps, splitPane } from './panel'
 import type { PaneInput } from './panel'
 import { projectName } from './project'
 import { browserApps } from './registry'
-import { listeningPorts, statusOf } from './running'
+import { isBusy, listeningPorts, statusOf } from './running'
+import { isAnyUp, serviceNames, servicesOf } from './containers'
 
 const GIT_PANE = 'branch-status'
 // Keys the two mods tag their drawings with, so whichever runs first can stack both.
@@ -44,7 +45,8 @@ async function load($: EngineInterface, cwd: string): Promise<Project | null> {
     files,
   }
   const launcher = launcherFor(sources, apps.map(app => app.port))
-  return { name, root, apps, launcher, listening: [] }
+  if (launcher?.kind !== 'docker') return { name, root, apps, launcher, listening: [] }
+  return { name, root, apps, launcher, listening: [], serviceNames: serviceNames(await output($, COMPOSE_SERVICES, root)) }
 }
 
 async function noteFailure($: EngineInterface, shown: Project) {
@@ -58,12 +60,15 @@ async function poll($: EngineInterface) {
   const shown = await read($, project)
   if (!shown) return
   void $.process.run(checkIn(shown.name, await $.session.id())).catch(() => undefined)
-  const listening = listeningPorts((await output($, LISTENING)) ?? '')
+  const [ss, ps] = await Promise.all([output($, LISTENING), shown.serviceNames && output($, COMPOSE_PS, shown.root)])
+  const listening = listeningPorts(ss ?? '')
+  const services = shown.serviceNames && servicesOf(ps ?? '', shown.serviceNames)
   const isAllUp = shown.apps.every(app => listening.includes(app.port))
-  const isAllDown = !shown.apps.some(app => listening.includes(app.port))
+  const isAllDown = !shown.apps.some(app => listening.includes(app.port)) && !isAnyUp(services)
   await update($, project, now => now && {
     ...now,
     listening,
+    services,
     startedAt: isAllUp ? undefined : now.startedAt,
     stoppingAt: isAllDown ? undefined : now.stoppingAt,
   })
@@ -74,7 +79,16 @@ async function start($: EngineInterface) {
   const shown = await read($, project)
   if (!shown?.launcher) return
   const startedAt = await $.clock.now()
-  await update($, project, now => now && { ...now, startedAt, stoppingAt: undefined, failure: undefined })
+  let isClaimed = false
+  // update retries the change on a clash, so the claim is decided again on each try.
+  await update($, project, now => {
+    isClaimed = !!now && !isBusy(now, startedAt)
+    if (!now || !isClaimed) return now
+    return { ...now, startedAt, stoppingAt: undefined, failure: undefined }
+  })
+  if (!isClaimed) return
+  const config = shown.serviceNames && (await output($, COMPOSE_SERVICES, shown.root))
+  if (config) await update($, project, now => now && { ...now, serviceNames: serviceNames(config) })
   for (const argv of startCommands(shown.name, shown.launcher)) await $.process.run(argv, { cwd: shown.root })
 }
 

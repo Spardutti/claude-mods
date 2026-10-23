@@ -21,8 +21,15 @@ You end up hunting through terminals to find the URL, or to stop a stack you for
    Apps shadowsource
    web running
      http://localhost:5185
-   [ Stop ]
+   Containers
+   web running
+   db running
+   api crashed, code 1
+   [ Start ] [ Stop ]
    ```
+
+   For a compose project it lists every container, the database too: `running`, `starting`, `unhealthy`,
+   `restarting`, `crashed, code N`, `exited` or `stopped`.
 
 3. **Click the address** to open the app in your browser.
 4. **Start** runs `docker compose watch` when the compose file has a `develop: watch:` section, else `docker compose up -d`.
@@ -38,7 +45,10 @@ You end up hunting through terminals to find the URL, or to stop a stack you for
 - **Two sessions on one project:** closing one leaves the apps up. Only the last one to close stops them.
 - **`/clear` and `/resume` don't stop anything.** Claude is still running.
 - **A start that isn't up after 90 seconds shows as failed.** Its output is in `~/.cache/dev-apps/<project>/`.
-- **Stop shows `stopping`** until the apps stop answering, and the buttons hide meanwhile.
+- **Start shows when anything is down or crashed. Stop shows when anything is up,** the database included.
+  So a crashed container gets Start, and a database left up by a failed start gets Stop.
+- **Exit codes 130, 137 and 143 count as stopped,** not crashed: Ctrl-C, a kill and `docker compose stop` leave them.
+- **Stop shows `stopping`** until the apps and containers are down, and the buttons hide meanwhile.
 - **No Git panel?** `/apps` opens the apps in their own panel.
 - **Worktrees count as their main project,** so they find the same rows in `dev-ports`.
 

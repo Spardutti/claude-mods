@@ -9,6 +9,10 @@ export const READ_REGISTRY = ['sh', '-c', 'cat "${DEV_PORTS_REGISTRY:-$HOME/.con
 
 export const LISTENING = ['ss', '-ltnH']
 
+export const COMPOSE_SERVICES = ['docker', 'compose', 'config', '--services']
+
+export const COMPOSE_PS = ['docker', 'compose', 'ps', '-a', '--format', 'json']
+
 // setsid -f lets the app outlive Claude; the exec line frees the pipes so the call returns at once.
 const detached = (script: string, ...args: string[]) => ['setsid', '-f', 'sh', '-c', `mkdir -p ${CACHE} && ${script}`, 'sh', ...args]
 
