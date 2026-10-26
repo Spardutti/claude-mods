@@ -1,0 +1,16 @@
+{
+  "name": "handoff-pickup",
+  "version": "0.3.0",
+  "description": "Picks up your newest handoff with /pickup, and deletes it when you're done",
+  "author": {
+    "name": "Damian"
+  },
+  "userConfig": {
+    "folder": {
+      "type": "string",
+      "title": "Handoff folder",
+      "description": "Where your handoff files live, relative to the project",
+      "default": ".claude/handoffs"
+    }
+  }
+}

@@ -45,6 +45,7 @@ until the session is already struggling.
   waits until the context grows 10 points past where the fresh session started.
 - It only checks when a turn ends, never in the middle of work.
 - It skips subagents and interrupted turns.
+- The handoff it writes counts as picked up in [handoff-pickup](handoff-pickup.md).
 
 ## Settings
 

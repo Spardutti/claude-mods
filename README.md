@@ -28,6 +28,7 @@ Add the marketplace once, then install a mod:
 /plugin marketplace add spardutti/claude-mods
 /plugin install branch-status@spardutti-mods
 /plugin install auto-handoff@spardutti-mods
+/plugin install handoff-pickup@spardutti-mods
 /plugin install blocked-run@spardutti-mods
 /plugin install dev-apps@spardutti-mods
 ```
@@ -42,6 +43,7 @@ Each mod has its own page with the full story.
 | --- | --- |
 | [branch-status](docs/mods/branch-status.md) | A panel with your branch, `develop` and `main` as a tiny git-flow graph, so you see what's waiting to ship without running `git log`. |
 | [auto-handoff](docs/mods/auto-handoff.md) | When the context gets too full, it warns you, counts down, then hands the work to a fresh session. |
+| [handoff-pickup](docs/mods/handoff-pickup.md) | `/pickup` picks up your newest handoff, `/pickup done` deletes it. |
 | [blocked-run](docs/mods/blocked-run.md) | When auto mode blocks a command, it shows above the prompt with a button to run it yourself. |
 | [dev-apps](docs/mods/dev-apps.md) | Under the Git panel: this project's apps, a link to open each, and Start and Stop. Stops them when you close Claude. |
 
@@ -53,6 +55,7 @@ Each mod has its own page with the full story.
 /plugin marketplace update spardutti-mods
 /plugin update branch-status@spardutti-mods
 /plugin update auto-handoff@spardutti-mods
+/plugin update handoff-pickup@spardutti-mods
 /plugin update blocked-run@spardutti-mods
 /plugin update dev-apps@spardutti-mods
 /reload-plugins
