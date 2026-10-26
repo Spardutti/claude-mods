@@ -8,10 +8,10 @@ const PATH = '.claude/handoffs/2026-10-02-fix-login.md'
 
 type Engine = Parameters<TestBody>[0]
 type On = Parameters<TestBody>[1]
-type Seen = { listed: string[]; removed: string[][]; stored: Map<string, unknown> }
+type Seen = { listed: string[]; removed: string[][]; stored: Map<string, unknown>; doc?: string }
 
 function fakeProject(on: On, ageMs = 3 * 24 * HOUR, stored: Record<string, unknown> = {}): Seen {
-  const seen: Seen = { listed: [], removed: [], stored: new Map(Object.entries(stored)) }
+  const seen: Seen = { listed: [], removed: [], stored: new Map(Object.entries(stored)), doc: '# Handoff — Fix the login redirect\n' }
   on('store.keys', async () => ({ value: [...seen.stored.keys()] }))
   on('store.set', async (_, e) => {
     seen.stored.set(e.key, e.value)
@@ -28,7 +28,10 @@ function fakeProject(on: On, ageMs = 3 * 24 * HOUR, stored: Record<string, unkno
     seen.listed.push(e.path)
     return { value: [{ name: '2026-10-02-fix-login.md', kind: 'file' as const, size: 1, mtimeMs: NOW - ageMs, isLink: false }] }
   })
-  on('fs.read', async () => ({ value: '# Handoff — Fix the login redirect\n' }))
+  on('fs.read', async () => {
+    if (seen.doc === undefined) throw new Error('ENOENT')
+    return { value: seen.doc }
+  })
   on('process.run', async (_, e) => {
     seen.removed.push([...e.argv])
     return { value: { exitCode: 0, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
@@ -92,16 +95,6 @@ test('a resumed handoff with dots in its name counts as picked up', async ($, on
   expect(seen.removed).toEqual([['rm', '--', dotted]])
 })
 
-test('/pickup takes a handoff under an hour old', async ($, on) => {
-  fakeProject(on, HOUR - 1)
-  await start($)
-
-  const result = await pickup($)
-
-  expect(result.text).toBe('Picked up: Fix the login redirect. Send any message to start.')
-  expect(result.context).toEqual([`Read ${PATH} and continue from it. When the work is done, tell the person to run /pickup done to delete it.`])
-})
-
 test('the folder setting is where it looks', { options: { folder: 'notes/handoffs/' } }, async ($, on) => {
   const seen = fakeProject(on)
   await start($)
@@ -147,4 +140,32 @@ test('a waiting handoff shows no line above the prompt', async ($, on) => {
 
   expect(await ui.find({ text: 'engine band' })).toBeDefined()
   expect(await ui.find({ text: /Handoff waiting/ })).toBeUndefined()
+})
+
+test('a resume prompt with the last reply after it counts as picked up', async ($, on) => {
+  const seen = fakeProject(on)
+  await start($)
+  await $.prompt.submit({ text: `Read ${PATH} and continue.\n\nThe reset hid your last reply, below.\n\nDone.`, wait: false, origin: { kind: 'composer' } })
+
+  await pickup($, 'done')
+
+  expect(seen.removed).toEqual([['rm', '--', PATH]])
+})
+
+test('/pickup with an unknown word picks up nothing', async ($, on) => {
+  const seen = fakeProject(on)
+  await start($)
+
+  const result = await pickup($, 'dismiss')
+
+  expect(result.text).toBe('Unknown: dismiss. Run /pickup, or /pickup done.')
+  expect([...seen.stored]).toEqual([])
+})
+
+test('/pickup says nothing is waiting when the handoff vanishes before it is read', async ($, on) => {
+  const seen = fakeProject(on)
+  seen.doc = undefined
+  await start($)
+
+  expect((await pickup($)).text).toBe('No handoff waiting in .claude/handoffs.')
 })

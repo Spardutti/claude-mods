@@ -26,7 +26,9 @@ async function pickUp($: EngineInterface, folder: string) {
   const [newest] = await unpickedHandoffs($, folder)
   if (!newest) return { text: `No handoff waiting in ${folder}.` }
   const path = `${folder}/${newest.name}`
-  const title = handoffTitle(newest.name, await $.fs.read(path))
+  const doc = await $.fs.read(path).catch(() => undefined)
+  if (doc === undefined) return { text: `No handoff waiting in ${folder}.` }
+  const title = handoffTitle(newest.name, doc)
   await markPicked($, path)
   return {
     text: `Picked up: ${title}. Send any message to start.`,
@@ -46,7 +48,7 @@ async function finish($: EngineInterface) {
 
 export const register: Register = (on, options) => {
   const folder = String(options.folder).replace(/\/+$/, '')
-  const resumed = new RegExp(`^Read (${folder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/[\\w-][\\w.-]*\\.md) and continue\\.$`)
+  const resumed = new RegExp(`^Read (${folder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/[\\w-][\\w.-]*\\.md) and continue\\.(?:\\n|$)`)
 
   on('session.start', async ($, e, next) => {
     cwd = e.cwd
@@ -55,7 +57,9 @@ export const register: Register = (on, options) => {
   })
 
   on('command.run', { command: COMMAND }, async ($, e) => {
-    if (e.args.trim() === 'done') return finish($)
+    const arg = e.args.trim()
+    if (arg === 'done') return finish($)
+    if (arg) return { text: `Unknown: ${arg}. Run /pickup, or /pickup done.` }
     return pickUp($, folder)
   })
 
