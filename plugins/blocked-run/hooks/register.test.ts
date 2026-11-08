@@ -1,39 +1,7 @@
 import { expect, test } from 'claude-code/testing'
-import type { RenderElement } from 'claude-code'
-import type { TestBody } from 'claude-code/testing'
 
-type Engine = Parameters<TestBody>[0]
-type On = Parameters<TestBody>[1]
-
-const COMMAND = 'gh pr merge 12 --squash'
-const BAND_PROPS = { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 100, scroll: { offset: 0, bodyRows: 4 }, view: {} } as const
-
-function fakeShell(on: On, exitCode = 0, output = 'Merged #12\n') {
-  const ran: { argv: string[]; cwd?: string }[] = []
-  const toasts: string[] = []
-  on('session.start', async (_, e) => ({ cwd: e.cwd }))
-  on('classic.PermissionDenied', async () => ({}))
-  on('prompt.submit', async (_, e) => ({ text: e.text, context: e.context }))
-  on('ui.render', async ($, e) => h($.ui.resolve(e).Text, {}, 'engine band') as RenderElement)
-  on('ui.toast', async (_, e) => {
-    toasts.push(e.text)
-    return { value: undefined }
-  })
-  on('process.spawn', async function* (_, e) {
-    ran.push({ argv: [...e.argv], cwd: e.cwd })
-    yield { stream: 'stdout' as const, text: output }
-    return { value: { code: exitCode, signal: null } }
-  })
-  return { ran, toasts }
-}
-
-async function blockBash($: Engine, tool = 'Bash') {
-  await $.session.start({ cwd: '/project', surface: 'terminal', isInteractive: true })
-  await $.classic.PermissionDenied({ tool_name: tool, tool_input: { command: COMMAND }, tool_use_id: 't1', reason: 'merge' })
-}
-
-const mount = ($: Engine, surface: 'terminal' | 'desktop' = 'terminal') =>
-  $.ui.mount({ plugin: 'blocked-run', surface, component: 'AbovePrompt', props: BAND_PROPS })
+import { COMMAND, blockBash, fakeShell, mount } from './fake-shell'
+import type { Engine } from './fake-shell'
 
 for (const surface of ['terminal', 'desktop'] as const) {
   test(`the band shows the blocked command on ${surface}`, async ($, on) => {

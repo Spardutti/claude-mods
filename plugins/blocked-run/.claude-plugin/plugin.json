@@ -1,7 +1,7 @@
 {
   "name": "blocked-run",
-  "version": "0.1.0",
-  "description": "When auto mode blocks a command, shows it above the prompt with a button to run it yourself",
+  "version": "0.2.0",
+  "description": "When auto mode blocks a command, or Claude asks you to run one, shows it above the prompt with a button to run it yourself",
   "author": { "name": "Damian" },
   "types": "./types/index.d.ts"
 }

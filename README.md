@@ -44,7 +44,7 @@ Each mod has its own page with the full story.
 | [branch-status](docs/mods/branch-status.md) | A panel with your branch, `develop` and `main` as a tiny git-flow graph, so you see what's waiting to ship without running `git log`. |
 | [auto-handoff](docs/mods/auto-handoff.md) | When the context gets too full, it warns you, counts down, then hands the work to a fresh session. |
 | [handoff-pickup](docs/mods/handoff-pickup.md) | `/pickup` picks up your newest handoff, `/pickup done` deletes it. |
-| [blocked-run](docs/mods/blocked-run.md) | When auto mode blocks a command, it shows above the prompt with a button to run it yourself. |
+| [blocked-run](docs/mods/blocked-run.md) | When auto mode blocks a command, or Claude asks you to run one, it shows above the prompt with a button to run it yourself. |
 | [dev-apps](docs/mods/dev-apps.md) | Under the Git panel: this project's apps, a link to open each, and Start and Stop. Stops them when you close Claude. |
 
 <details>

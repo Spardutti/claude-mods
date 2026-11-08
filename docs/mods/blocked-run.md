@@ -1,6 +1,6 @@
 # blocked-run
 
-When auto mode blocks a command, you run it yourself with one click.
+When auto mode blocks a command, or Claude asks you to run one, you run it yourself with one click.
 
 ```
 /plugin install blocked-run@spardutti-mods
@@ -27,6 +27,23 @@ That's three chores for one click's worth of work.
 
 **Dismiss** hides the line and runs nothing.
 
+## When Claude asks you to run a command
+
+Sometimes Claude doesn't try a command. It writes `! <command>` and asks you to run it.
+When its reply ends, the same line shows that command:
+
+```
+ CLAUDE ASKS YOU TO RUN  git push origin --delete feat/old (then 1 more)
+[ Run it myself ] [ Dismiss ]
+```
+
+- **Several commands run one at a time,** in the order Claude wrote them. When one finishes, the next one shows.
+- **If one fails, the rest don't run.** Claude is told which ones were skipped.
+- **Skip the rest** stops the queue. Claude is told what you chose not to run.
+- **Your next message carries every output** to Claude in one note.
+- **A message sent mid-queue** carries the outputs so far, and tells Claude what hasn't run yet. The band stays.
+- **Nothing gets lost.** A command blocked or asked for while another one waits or runs joins the queue.
+
 ## Good to know
 
 - **It runs the exact command shown**, in the session's folder, and only when you click.
@@ -35,5 +52,6 @@ That's three chores for one click's worth of work.
 - **Why you send a message after it's done:** a mod can't start Claude's turn by itself,
   so the output waits for your next message.
 - **Only Bash commands.** A blocked file edit or other tool doesn't show here.
+- **Only the main chat.** A command a subagent asks for doesn't show here.
 
 [← All mods](../../README.md)
