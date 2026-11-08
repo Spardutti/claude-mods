@@ -41,6 +41,8 @@ When its reply ends, the same line shows that command:
 - **If one fails, the rest don't run.** Claude is told which ones were skipped.
 - **Skip the rest** stops the queue. Claude is told what you chose not to run.
 - **Your next message carries every output** to Claude in one note.
+- **A message sent mid-queue** carries the outputs so far, and tells Claude what hasn't run yet. The band stays.
+- **Nothing gets lost.** A command blocked or asked for while another one waits or runs joins the queue.
 
 ## Good to know
 

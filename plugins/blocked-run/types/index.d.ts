@@ -1,4 +1,5 @@
-export type Blocked = { command: string; status: 'waiting' | 'running' | 'done'; lastLine?: string; exitCode?: number; note?: string; asked?: boolean; queue?: string[] }
+export type Pending = { command: string; asked?: boolean }
+export type Blocked = Pending & { status: 'waiting' | 'running' | 'done'; lastLine?: string; exitCode?: number; note?: string; queue?: Pending[] }
 
 declare module 'claude-code' {
   interface PluginState {

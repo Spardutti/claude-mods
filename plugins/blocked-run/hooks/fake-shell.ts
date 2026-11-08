@@ -10,6 +10,12 @@ export const BAND_PROPS = { hasSurvey: false, isWorking: false, maxRows: 4, body
 export function fakeShell(on: On, exitCode = 0, output = 'Merged #12\n') {
   const ran: { argv: string[]; cwd?: string }[] = []
   const toasts: string[] = []
+  let gate: Promise<void> | undefined
+  const hold = () => {
+    let release = () => {}
+    gate = new Promise(resolve => (release = resolve))
+    return release
+  }
   on('session.start', async (_, e) => ({ cwd: e.cwd }))
   on('classic.PermissionDenied', async () => ({}))
   on('classic.Stop', async () => ({}))
@@ -22,9 +28,10 @@ export function fakeShell(on: On, exitCode = 0, output = 'Merged #12\n') {
   on('process.spawn', async function* (_, e) {
     ran.push({ argv: [...e.argv], cwd: e.cwd })
     yield { stream: 'stdout' as const, text: output }
+    await gate
     return { value: { code: exitCode, signal: null } }
   })
-  return { ran, toasts }
+  return { ran, toasts, hold }
 }
 
 export async function blockBash($: Engine, tool = 'Bash') {
@@ -41,3 +48,7 @@ export async function askInReply($: Engine, reply = `Run this one:\n\n! ${COMMAN
   await $.classic.Stop({ session_id: 's', transcript_path: '', cwd: '', stop_hook_active: false, last_assistant_message: reply, background_tasks: [] })
 }
 
+
+export const submit = async ($: Engine) => (await $.prompt.submit({ text: 'done', wait: false, origin: { kind: 'composer' } })).context
+
+export const settle = () => new Promise(resolve => setTimeout(resolve, 0))

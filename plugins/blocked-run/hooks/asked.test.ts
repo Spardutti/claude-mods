@@ -33,3 +33,11 @@ for (const [desc, reply] of [
     expect(askedCommandsOf(reply)).toEqual([])
   })
 }
+
+test('a command split with a backslash comes back whole', () => {
+  expect(askedCommandsOf('! docker compose up \\\n  --build web')).toEqual(['docker compose up \\\n  --build web'])
+})
+
+test('a script in a code block gives nothing', () => {
+  expect(askedCommandsOf('```bash\nset -e\n! grep -q foo file && exit 1\n```')).toEqual([])
+})
