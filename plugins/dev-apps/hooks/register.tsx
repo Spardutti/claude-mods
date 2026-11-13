@@ -147,7 +147,8 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('ui.render', { component: 'Pane', requestId: GIT_PANE }, async ($, e, next) => {
+  // Without `plugin`, the engine only sends a mod its own panes; the test kit leaves the owner unset.
+  on('ui.render', { component: 'Pane', requestId: GIT_PANE, plugin: '*' }, async ($, e, next) => {
     const below = await next(e)
     const drawn = await apps($, e)
     if (!drawn) return below
